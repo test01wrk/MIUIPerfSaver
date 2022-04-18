@@ -5,13 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.annotation.Keep
-import com.rdstory.miuiperfsaver.BuildConfig
+import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.Constants.ACTION_UPDATE_SAVED_LIST
 import com.rdstory.miuiperfsaver.Constants.EXTRA_SAVED_LIST
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
-import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
-import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
-import de.robv.android.xposed.*
+import de.robv.android.xposed.IXposedHookLoadPackage
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
+import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 @Keep
@@ -24,7 +25,6 @@ class HookMain : IXposedHookLoadPackage {
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (MIUI_POWER_KEEPER != lpparam.packageName) return
-        XposedBridge.log("[${LOG_TAG}] $MIUI_POWER_KEEPER: ${lpparam.processName}")
         try {
             hook(lpparam)
             XposedBridge.log("[${LOG_TAG}] hooked $MIUI_POWER_KEEPER")
@@ -46,22 +46,15 @@ class HookMain : IXposedHookLoadPackage {
                 val savedApps = mutableSetOf<String>()
                 var maxFPS: Int? = null
 
-                private fun initSavedList(context: Context?, thisObj: Any) {
-                    try {
-                        val xPref = XSharedPreferences(BuildConfig.APPLICATION_ID, SETTINGS_SP_KEY)
-                        xPref.getStringSet(PREF_KEY_SAVED_APP_LIST, null)
-                    } catch (e: Exception) {
-                        XposedBridge.log("[${LOG_TAG}] failed to get saved app list. ${e.message}")
-                        null
-                    }?.let {
-                        savedApps.addAll(it)
-                    }
+                private fun init(context: Context?, thisObj: Any) {
+                    context ?: return
                     try {
                         maxFPS = XposedHelpers.callMethod(thisObj, "getMaxFPS") as? Int
                     } catch (e: Exception) {
                         XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
                     }
-                    context?.registerReceiver(object : BroadcastReceiver() {
+                    savedApps.addAll(ConfigProvider.getSavedAppList(context))
+                    context.registerReceiver(object : BroadcastReceiver() {
                         override fun onReceive(context: Context?, intent: Intent?) {
                             intent?.getStringArrayListExtra(EXTRA_SAVED_LIST)?.let {
                                 XposedBridge.log("[${LOG_TAG}] receive saved app list update: ${it.size}")
@@ -70,7 +63,7 @@ class HookMain : IXposedHookLoadPackage {
                             }
                         }
                     }, IntentFilter(ACTION_UPDATE_SAVED_LIST))
-                    XposedBridge.log("[${LOG_TAG}] saved app list initialized: ${savedApps.size}")
+                    XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}")
                 }
 
                 override fun beforeHookedMethod(param: MethodHookParam) {
@@ -82,7 +75,7 @@ class HookMain : IXposedHookLoadPackage {
                             XposedBridge.log("[${LOG_TAG}] failed to get context. ${e.message}")
                             null
                         }
-                        initSavedList(context, param.thisObject)
+                        init(context, param.thisObject)
                     }
                     val maxFPS = maxFPS ?: return
                     val pkg = param.args?.getOrNull(0) as? String ?: return

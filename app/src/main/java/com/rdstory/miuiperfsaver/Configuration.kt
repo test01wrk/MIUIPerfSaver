@@ -55,4 +55,8 @@ object Configuration {
     fun isEnabled(packageName: String): Boolean {
         return savedApps.contains(packageName)
     }
+
+    fun getAll(): Collection<String> {
+        return savedApps
+    }
 }

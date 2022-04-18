@@ -45,6 +45,12 @@
         <meta-data
             android:name="xposedscope"
             android:resource="@array/hook_scope" />
+
+        <provider
+            android:authorities="com.rdstory.miuiperfsaver.config_provider"
+            android:name=".ConfigProvider"
+            android:exported="true"
+            tools:ignore="ExportedContentProvider" />
     </application>
 
 </manifest>

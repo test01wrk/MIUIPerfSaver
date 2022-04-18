@@ -14,6 +14,7 @@ object Constants {
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
 
 
+    const val CONTENT_PROVIDER_AUTH = "com.rdstory.miuiperfsaver.config_provider"
     const val ACTION_UPDATE_SAVED_LIST = "${BuildConfig.APPLICATION_ID}_action_update_saved_list"
     const val EXTRA_SAVED_LIST = "extra_saved_list"
 }
