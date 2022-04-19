@@ -3,34 +3,48 @@ package com.rdstory.miuiperfsaver
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.Context
+import android.database.ContentObserver
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import com.rdstory.miuiperfsaver.Constants.CONTENT_PROVIDER_AUTH
 
 class ConfigProvider : ContentProvider() {
     companion object {
         private const val COLUMN_PKG = "package_name"
+        private val APP_LIST_URI = Uri.parse("content://${CONTENT_PROVIDER_AUTH}/app_list")
 
-        fun getSavedAppList(context: Context): Collection<String> {
-            val cursor = context.contentResolver.query(
-                Uri.parse("content://${CONTENT_PROVIDER_AUTH}/app_list"),
-                null,
-                null,
-                null
-            )
-            cursor ?: return emptyList()
+        fun getSavedAppList(context: Context): Collection<String>? {
+            val cursor = context.contentResolver.query(APP_LIST_URI, null, null, null)
+            cursor ?: return null
             val appList = arrayListOf<String>()
             if (cursor.moveToFirst()) {
                 do {
-                    val index = cursor.getColumnIndex(COLUMN_PKG)
-                    if (index >= 0) {
-                        appList.add(cursor.getString(index))
+                    cursor.getColumnIndex(COLUMN_PKG).takeIf { it >= 0 }?.let {
+                        appList.add(cursor.getString(it))
                     }
                 } while (cursor.moveToNext())
             }
             cursor.close()
             return appList
+        }
+
+        fun observeSavedAppList(context: Context, callback: () -> Unit) {
+            context.contentResolver.registerContentObserver(
+                APP_LIST_URI,
+                false,
+                object : ContentObserver(Handler(Looper.getMainLooper())) {
+                    override fun onChange(selfChange: Boolean) {
+                        callback()
+                    }
+                }
+            )
+        }
+
+        fun notifyChange(context: Context) {
+            context.contentResolver.notifyChange(APP_LIST_URI, null)
         }
     }
 

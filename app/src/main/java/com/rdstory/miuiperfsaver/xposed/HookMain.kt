@@ -1,13 +1,8 @@
 package com.rdstory.miuiperfsaver.xposed
 
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import androidx.annotation.Keep
 import com.rdstory.miuiperfsaver.ConfigProvider
-import com.rdstory.miuiperfsaver.Constants.ACTION_UPDATE_SAVED_LIST
-import com.rdstory.miuiperfsaver.Constants.EXTRA_SAVED_LIST
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
@@ -53,16 +48,14 @@ class HookMain : IXposedHookLoadPackage {
                     } catch (e: Exception) {
                         XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
                     }
-                    savedApps.addAll(ConfigProvider.getSavedAppList(context))
-                    context.registerReceiver(object : BroadcastReceiver() {
-                        override fun onReceive(context: Context?, intent: Intent?) {
-                            intent?.getStringArrayListExtra(EXTRA_SAVED_LIST)?.let {
-                                XposedBridge.log("[${LOG_TAG}] receive saved app list update: ${it.size}")
-                                savedApps.clear()
-                                savedApps.addAll(it)
-                            }
+                    ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
+                    ConfigProvider.observeSavedAppList(context) {
+                        ConfigProvider.getSavedAppList(context)?.let {
+                            XposedBridge.log("[${LOG_TAG}] receive saved app list update: ${savedApps.size} -> ${it.size}")
+                            savedApps.clear()
+                            savedApps.addAll(it)
                         }
-                    }, IntentFilter(ACTION_UPDATE_SAVED_LIST))
+                    }
                     XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}")
                 }
 

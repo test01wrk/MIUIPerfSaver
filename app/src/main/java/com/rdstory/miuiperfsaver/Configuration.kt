@@ -1,10 +1,7 @@
 package com.rdstory.miuiperfsaver
 
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
-import com.rdstory.miuiperfsaver.Constants.ACTION_UPDATE_SAVED_LIST
-import com.rdstory.miuiperfsaver.Constants.EXTRA_SAVED_LIST
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
 
@@ -32,10 +29,7 @@ object Configuration {
     }
 
     private fun notifyChange() {
-        application.sendBroadcast(Intent(ACTION_UPDATE_SAVED_LIST).apply {
-            val appList = arrayListOf<String>().apply { addAll(savedApps) }
-            putStringArrayListExtra(EXTRA_SAVED_LIST, appList)
-        })
+        ConfigProvider.notifyChange(application)
     }
 
     fun add(packageName: String) {
