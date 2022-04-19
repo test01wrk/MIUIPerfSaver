@@ -48,7 +48,6 @@ class HookMain : IXposedHookLoadPackage {
                     } catch (e: Exception) {
                         XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
                     }
-                    ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
                     ConfigProvider.observeSavedAppList(context) {
                         ConfigProvider.getSavedAppList(context)?.let {
                             XposedBridge.log("[${LOG_TAG}] receive saved app list update: ${savedApps.size} -> ${it.size}")
@@ -56,6 +55,7 @@ class HookMain : IXposedHookLoadPackage {
                             savedApps.addAll(it)
                         }
                     }
+                    ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
                     XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}")
                 }
 
