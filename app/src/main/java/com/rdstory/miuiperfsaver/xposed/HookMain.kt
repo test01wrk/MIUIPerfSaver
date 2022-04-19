@@ -22,9 +22,9 @@ class HookMain : IXposedHookLoadPackage {
         if (MIUI_POWER_KEEPER != lpparam.packageName) return
         try {
             hook(lpparam)
-            XposedBridge.log("[${LOG_TAG}] hooked $MIUI_POWER_KEEPER")
+            XposedBridge.log("[${LOG_TAG}] process hooked: ${lpparam.processName}")
         } catch (e: Exception) {
-            XposedBridge.log("[${LOG_TAG}] failed to hook $MIUI_POWER_KEEPER. ${e.message}")
+            XposedBridge.log("[${LOG_TAG}] failed to hook process: ${lpparam.processName}. ${e.message}")
         }
     }
 
