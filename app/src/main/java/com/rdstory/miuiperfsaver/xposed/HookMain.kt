@@ -37,48 +37,53 @@ class HookMain : IXposedHookLoadPackage {
             Int::class.java,
             Int::class.java,
             object : XC_MethodHook() {
-                var initialized = false
-                val savedApps = mutableSetOf<String>()
-                var maxFPS: Int? = null
-
-                private fun init(context: Context?, thisObj: Any) {
-                    context ?: return
-                    try {
-                        maxFPS = XposedHelpers.callMethod(thisObj, "getMaxFPS") as? Int
-                    } catch (e: Exception) {
-                        XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
-                    }
-                    ConfigProvider.observeSavedAppList(context) {
-                        ConfigProvider.getSavedAppList(context)?.let {
-                            XposedBridge.log("[${LOG_TAG}] receive saved app list update: ${savedApps.size} -> ${it.size}")
-                            savedApps.clear()
-                            savedApps.addAll(it)
-                        }
-                    }
-                    ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
-                    XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}")
-                }
-
                 override fun beforeHookedMethod(param: MethodHookParam) {
-                    if (!initialized) {
-                        initialized = true
-                        val context = try {
-                            XposedHelpers.getObjectField(param.thisObject, "mContext") as? Context
-                        } catch (e: Exception) {
-                            XposedBridge.log("[${LOG_TAG}] failed to get context. ${e.message}")
-                            null
-                        }
-                        init(context, param.thisObject)
-                    }
-                    val maxFPS = maxFPS ?: return
-                    val pkg = param.args?.getOrNull(0) as? String ?: return
-                    val fps = param.args?.getOrNull(1) as? Int ?: return
-                    if (fps < maxFPS && savedApps.contains(pkg)) {
-                        param.args[1] = maxFPS
-                        XposedBridge.log("[${LOG_TAG}] [fps: $fps -> $maxFPS] perf saved: $pkg")
-                    }
+                    val pkg = param.args[0] as String
+                    val fps = param.args[1] as Int
+                    FPSSaver.ensureInit(param.thisObject)
+                    FPSSaver.getTargetFPS(pkg, fps).takeIf { it > fps }?.let { param.args[1] = it }
                 }
             }
         )
+    }
+
+    private object FPSSaver {
+        private var initialized = false
+        private val savedApps = mutableSetOf<String>()
+        private var maxFPS: Int? = null
+
+        fun ensureInit(thisObject: Any) {
+            if (initialized) {
+                return
+            }
+            initialized = true
+            maxFPS = try {
+                XposedHelpers.callMethod(thisObject, "getMaxFPS") as? Int
+            } catch (e: Exception) {
+                XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
+                null
+            } ?: return
+            val context = try {
+                XposedHelpers.getObjectField(thisObject, "mContext") as? Context
+            } catch (e: Exception) {
+                XposedBridge.log("[${LOG_TAG}] failed to get context. ${e.message}")
+                null
+            } ?: return
+            ConfigProvider.observeSavedAppList(context) {
+                ConfigProvider.getSavedAppList(context)?.let {
+                    XposedBridge.log("[${LOG_TAG}] saved app list updated: ${savedApps.size} -> ${it.size}")
+                    savedApps.clear()
+                    savedApps.addAll(it)
+                }
+            }
+            ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
+            XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}")
+        }
+
+        fun getTargetFPS(pkg: String, fps: Int): Int {
+            val maxFPS = maxFPS?.takeIf { fps < it && savedApps.contains(pkg) } ?: return fps
+            XposedBridge.log("[${LOG_TAG}] [fps: $fps -> $maxFPS] perf saved: $pkg")
+            return maxFPS
+        }
     }
 }
