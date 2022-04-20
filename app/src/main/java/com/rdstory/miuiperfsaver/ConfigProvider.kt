@@ -9,12 +9,12 @@ import android.database.MatrixCursor
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.rdstory.miuiperfsaver.Constants.CONTENT_PROVIDER_AUTH
+import com.rdstory.miuiperfsaver.BuildConfig.CONFIG_PROVIDER_AUTHORITY
 
 class ConfigProvider : ContentProvider() {
     companion object {
         private const val COLUMN_PKG = "package_name"
-        private val APP_LIST_URI = Uri.parse("content://${CONTENT_PROVIDER_AUTH}/app_list")
+        private val APP_LIST_URI = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/app_list")
 
         fun getSavedAppList(context: Context): Collection<String>? {
             val cursor = context.contentResolver.query(APP_LIST_URI, null, null, null)

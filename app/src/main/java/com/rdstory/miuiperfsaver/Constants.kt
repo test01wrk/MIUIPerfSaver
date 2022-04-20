@@ -12,6 +12,4 @@ object Constants {
     const val PREF_KEY_SHOW_PERF_SAVED_FIRST = "preference_show_saved_first"
     const val PREF_KEY_SHOW_SYSTEM = "preference_show_system"
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
-
-    const val CONTENT_PROVIDER_AUTH = "com.rdstory.miuiperfsaver.config_provider"
 }

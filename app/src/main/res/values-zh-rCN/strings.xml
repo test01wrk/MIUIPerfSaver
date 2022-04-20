@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MIUI 性能救星</string>
+    <string name="app_name_release">MIUI 性能救星</string>
+    <string name="app_name_debug">MIUI 性能救星-DEBUG</string>
     <string name="app_xposed_description">移除 MIUI 对应用的性能限制，以最高帧率运行应用</string>
     <string name="app_xposed_description_xp">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用模块时需要停止\"性能与电量\"应用，后续修改生效应用列表立即生效</string>
     <string name="app_xposed_description_full">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用模块时需要停止\"性能与电量\"应用，后续修改生效应用列表立即生效。UI 来自 https://github.com/Palatis/XAppDebug</string>

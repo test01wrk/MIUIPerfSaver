@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MIUIPerfSaver</string>
+    <string name="app_name_release">MIUIPerfSaver</string>
+    <string name="app_name_debug">MIUIPerfSaver-DEBUG</string>
     <string name="app_xposed_description">Remove MIUI\'s performance limit, run app at maximum FPS</string>
     <string name="app_xposed_description_xp">Remove MIUI\'s performance limit, run app at maximum FPS</string>
     <string name="app_xposed_description_full">Remove MIUI\'s performance limit, run app at maximum FPS. Thanks to https://github.com/Palatis/XAppDebug for the UI</string>

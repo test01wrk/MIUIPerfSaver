@@ -3,15 +3,26 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+project.ext {
+    applicationId = "com.rdstory.miuiperfsaver"
+    configProviderAuthority = "com.rdstory.miuiperfsaver.config_provider"
+}
+
 android {
     compileSdk 31
 
     defaultConfig {
-        applicationId "com.rdstory.miuiperfsaver"
+        applicationId project.ext.applicationId
         minSdk 29
         targetSdk 31
         versionCode 1
         versionName "1.0.0"
+        resConfigs "zh-rCN"
+        manifestPlaceholders = [
+                configProviderAuthority: project.ext.configProviderAuthority
+        ]
+        buildConfigField "String", "CONFIG_PROVIDER_AUTHORITY", "\"${project.ext.configProviderAuthority}\""
+        resValue "string", "app_name", "@string/app_name_release"
     }
 
     signingConfigs {
@@ -25,6 +36,17 @@ android {
         }
     }
     buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-DEBUG'
+            resValue "string", "app_name", "@string/app_name_debug"
+            manifestPlaceholders = [
+                    configProviderAuthority: project.ext.configProviderAuthority + ".debug"
+            ]
+            buildConfigField "String", "CONFIG_PROVIDER_AUTHORITY", "\"${project.ext.configProviderAuthority + ".debug"}\""
+
+            minifyEnabled false
+        }
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
