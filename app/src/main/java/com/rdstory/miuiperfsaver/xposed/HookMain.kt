@@ -30,18 +30,19 @@ class HookMain : IXposedHookLoadPackage {
     }
 
     private fun hook(lpparam: XC_LoadPackage.LoadPackageParam) {
+        val classDisplayFrameSetting =
+            XposedHelpers.findClass(CLASS_DISPLAYFRAMESETTING, lpparam.classLoader)
         // primary hook: onForegroundChanged
         // exclude selected package name
         XposedHelpers.findAndHookMethod(
-            CLASS_DISPLAYFRAMESETTING,
-            lpparam.classLoader,
+            classDisplayFrameSetting,
             "onForegroundChanged",
             XposedHelpers.findClass("miui.process.ForegroundInfo", lpparam.classLoader),
             object : XC_MethodHook() {
                 private var cleanup: (() -> Unit)? = null
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     FPSSaver.ensureInit(param.thisObject)
-                    cleanup = FPSSaver.setExcludeMyApps(param.args[0])
+                    cleanup = FPSSaver.excludeIfMatch(param.args[0])
                 }
                 override fun afterHookedMethod(param: MethodHookParam) {
                     cleanup?.invoke()
@@ -51,8 +52,7 @@ class HookMain : IXposedHookLoadPackage {
         // secondary hook: setScreenEffect
         // replace fps parameter
         XposedHelpers.findAndHookMethod(
-            CLASS_DISPLAYFRAMESETTING,
-            lpparam.classLoader,
+            classDisplayFrameSetting,
             "setScreenEffect",
             String::class.java,
             Int::class.java,
@@ -61,8 +61,12 @@ class HookMain : IXposedHookLoadPackage {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val pkg = param.args[0] as String
                     val fps = param.args[1] as Int
+                    val cookie = param.args[2] as Int
                     FPSSaver.ensureInit(param.thisObject)
-                    FPSSaver.getTargetFPS(pkg, fps).takeIf { it > fps }?.let { param.args[1] = it }
+                    FPSSaver.getTargetFPS(pkg, fps, cookie)?.let {
+                        param.args[1] = it
+                        param.args[2] = FPSSaver.excludeCookie // avoid getting ignored
+                    }
                 }
             }
         )
@@ -72,33 +76,19 @@ class HookMain : IXposedHookLoadPackage {
         private var initialized = false
         private val savedApps = mutableSetOf<String>()
         private var maxFPS: Int? = null
+        var excludeCookie = 247
+            private set
         private var hookedExcludeAppSet: ArraySet<String>? = null
-        private var hookedInstance: Any? = null
 
         fun ensureInit(thisObject: Any) {
             if (initialized) {
                 return
             }
             initialized = true
-            hookedInstance = thisObject
-            maxFPS = try {
-                XposedHelpers.callMethod(thisObject, "getMaxFPS") as? Int
-            } catch (e: Exception) {
-                XposedBridge.log("[${LOG_TAG}] failed to get max fps. ${e.message}")
-                null
-            } ?: return
-            val context = try {
-                XposedHelpers.getObjectField(thisObject, "mContext") as? Context
-            } catch (e: Exception) {
-                XposedBridge.log("[${LOG_TAG}] failed to get context. ${e.message}")
-                null
-            } ?: return
-            try {
-                @Suppress("UNCHECKED_CAST")
-                hookedExcludeAppSet = XposedHelpers.getObjectField(thisObject, "mExcludeApps") as? ArraySet<String>
-            } catch (e: Exception) {
-                XposedBridge.log("[${LOG_TAG}] failed to get excluded app list. ${e.message}")
-            }
+            maxFPS = thisObject.callMethod("getMaxFPS") ?: return
+            val context: Context = thisObject.getObjectField("mContext") ?: return
+            hookedExcludeAppSet = thisObject.getObjectField("mExcludeApps")
+            thisObject.getObjectField<Int>("COOKIE_EXCLUDE")?.let { excludeCookie = it }
             ConfigProvider.observeSavedAppList(context) {
                 ConfigProvider.getSavedAppList(context)?.let {
                     XposedBridge.log("[${LOG_TAG}] saved app list updated: ${savedApps.size} -> ${it.size}")
@@ -110,24 +100,46 @@ class HookMain : IXposedHookLoadPackage {
             XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
         }
 
-        fun getTargetFPS(pkg: String, fps: Int): Int {
-            val maxFPS = maxFPS?.takeIf { fps < it && savedApps.contains(pkg) } ?: return fps
-            XposedBridge.log("[${LOG_TAG}] [fps: $fps -> $maxFPS] perf saved: $pkg")
+        fun getTargetFPS(pkg: String, fps: Int, cookie: Int): Int? {
+            val maxFPS = maxFPS?.takeIf {
+                (fps < it || cookie != excludeCookie) && savedApps.contains(pkg)
+            } ?: return null
+            var changed = ""
+            changed += if (fps != maxFPS) "[fps: $fps -> $maxFPS]" else "[fps: $fps]"
+            changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
+            XposedBridge.log("[${LOG_TAG}] $changed perf saved: $pkg")
             return maxFPS
         }
 
-        fun setExcludeMyApps(foregroundInfo: Any?): (() -> Unit)? {
-            foregroundInfo ?: return null
+        fun excludeIfMatch(foregroundInfo: Any?): (() -> Unit)? {
             val hookedAppSet = hookedExcludeAppSet ?: return null
-            try {
-                XposedHelpers.getObjectField(foregroundInfo, "mForegroundPackageName") as? String
-            } catch (e: Exception) {
-                null
-            }?.takeIf { pkg -> savedApps.contains(pkg) && hookedAppSet.add(pkg) }?.let { pkg ->
-                XposedBridge.log("[${LOG_TAG}] [excluded] perf saved: $pkg")
-                return { hookedAppSet.remove(pkg) }
-            }
+            foregroundInfo?.getObjectField<String>("mForegroundPackageName")
+                ?.takeIf { pkg -> savedApps.contains(pkg) && hookedAppSet.add(pkg) }
+                ?.let { pkg ->
+                    XposedBridge.log("[${LOG_TAG}] [excluded] perf saved: $pkg")
+                    return { hookedAppSet.remove(pkg) }
+                }
             return null
         }
+    }
+}
+
+private fun <T> Any.getObjectField(filedName: String): T? {
+    return try {
+        @Suppress("UNCHECKED_CAST")
+        XposedHelpers.getObjectField(this, filedName) as? T
+    } catch (e: Exception) {
+        XposedBridge.log("[${LOG_TAG}] failed to get object: ${this.javaClass.name}.$filedName. ${e.message}")
+        null
+    }
+}
+
+private fun <T> Any.callMethod(methodName: String, vararg args: Any): T? {
+    return try {
+        @Suppress("UNCHECKED_CAST")
+        XposedHelpers.callMethod(this, methodName, *args) as? T
+    } catch (e: Exception) {
+        XposedBridge.log("[${LOG_TAG}] failed to call method: ${this.javaClass.name}.$methodName. ${e.message}")
+        null
     }
 }
