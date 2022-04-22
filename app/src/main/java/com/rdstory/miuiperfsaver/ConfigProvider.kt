@@ -65,8 +65,8 @@ class ConfigProvider : ContentProvider() {
         }
     }
 
-    override fun getType(uri: Uri): String {
-        return "plain"
+    override fun getType(uri: Uri): String? {
+        return null
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {

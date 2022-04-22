@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
+import com.rdstory.miuiperfsaver.utils.PackageInfoUtil
 
 object Configuration {
-    private lateinit var sharedPreferences: SharedPreferences
+    lateinit var sharedPreferences: SharedPreferences
+        private set
     private val savedApps = mutableSetOf<String>()
     private lateinit var application: Context
 
@@ -22,6 +24,7 @@ object Configuration {
             savedApps.addAll(it)
         }
         notifyChange()
+        PackageInfoUtil.load()
     }
 
     private fun save() {

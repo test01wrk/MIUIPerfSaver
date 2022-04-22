@@ -1,6 +1,5 @@
 package com.rdstory.miuiperfsaver.adapters
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
@@ -17,9 +16,8 @@ import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.collection.SparseArrayCompat
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
-import com.google.android.material.snackbar.Snackbar
 import com.rdstory.miuiperfsaver.Configuration
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_PERF_SAVED_FIRST
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_SYSTEM
@@ -29,15 +27,17 @@ import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_LABEL
 import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_PACKAGE_NAME
 import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_UPDATE_TIME
 import com.rdstory.miuiperfsaver.R
+import com.rdstory.miuiperfsaver.utils.PackageInfoUtil
+import com.rdstory.miuiperfsaver.utils.Performance
 import java.util.*
 
-@SuppressLint("NotifyDataSetChanged")
 class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) :
     RecyclerView.Adapter<InstalledPackageAdapter.ViewHolder>(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val mSharedPreferences: SharedPreferences = prefs
     private val mPackageManager: PackageManager = pkgMgr
     private var mInstalledPackages: MutableList<PackageInfoCache> = ArrayList()
     private val mFilteredPackages: MutableList<PackageInfoCache> = ArrayList()
+    private val mFilteredPackagesOld: MutableList<PackageInfoCache> = ArrayList()
     private var mFilterQuery = ""
 
     init {
@@ -48,21 +48,38 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
         when (key) {
             PREF_KEY_SORT_ORDER, PREF_KEY_SHOW_PERF_SAVED_FIRST, PREF_KEY_SHOW_SYSTEM -> {
                 filterAndSort()
-                notifyDataSetChanged()
             }
         }
     }
 
+    private class DiffCallback(
+        private var newList: List<PackageInfoCache>,
+        private var oldList: List<PackageInfoCache>
+    ) : DiffUtil.Callback() {
+        override fun getOldListSize(): Int {
+            return oldList.size
+        }
+        override fun getNewListSize(): Int {
+            return newList.size
+        }
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return true
+        }
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition].packageName == newList[newItemPosition].packageName
+        }
+    }
+
     class PackageInfoCache(var pkg: PackageInfo) {
-        var mLabel: CharSequence? = null
-        var mIcon: Drawable? = null
+        private var mLabel: CharSequence? = null
+        private var mIcon: Drawable? = null
 
         fun getIcon(pm: PackageManager): Drawable {
             return mIcon ?: pm.getApplicationIcon(pkg.applicationInfo).also { mIcon = it }
         }
 
         fun getLabel(pm: PackageManager): CharSequence {
-            return mLabel ?: pm.getApplicationLabel(pkg.applicationInfo).also { mLabel = it }
+            return mLabel ?: (PackageInfoUtil.getPackageInfo(pkg.packageName)?.name ?: pm.getApplicationLabel(pkg.applicationInfo)).also { mLabel = it }
         }
 
         val packageName: String
@@ -117,18 +134,14 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
         for (newPkg in packages) {
             val pkg = map.get(newPkg.packageName.hashCode()) ?: PackageInfoCache(newPkg)
             pkg.pkg = newPkg
-            pkg.mIcon = null
-            pkg.mLabel = null
             mInstalledPackages.add(pkg)
         }
         filterAndSort()
-        notifyDataSetChanged()
     }
 
     fun setFilterQuery(query: String) {
         mFilterQuery = query
         filterAndSort()
-        notifyDataSetChanged()
     }
 
     private fun filterSystem(target: List<PackageInfoCache>): MutableList<PackageInfoCache> {
@@ -174,10 +187,17 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
                 }
             filtered.sortWith(perfSavedComparator.reversed().thenComparing(orderComparator))
         } else {
-            filtered.sortWith(orderComparator)
+            Performance.timedAction("filtered.sortWith") {
+                filtered.sortWith(orderComparator)
+            }
         }
+
+        mFilteredPackagesOld.clear()
+        mFilteredPackagesOld.addAll(mFilteredPackages)
         mFilteredPackages.clear()
         mFilteredPackages.addAll(filtered)
+        DiffUtil.calculateDiff(DiffCallback(mFilteredPackages, mFilteredPackagesOld))
+            .dispatchUpdatesTo(this)
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
