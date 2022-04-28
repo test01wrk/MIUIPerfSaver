@@ -12,14 +12,13 @@ import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CompoundButton
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.appcompat.widget.SwitchCompat
 import androidx.collection.SparseArrayCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.snackbar.BaseTransientBottomBar.LENGTH_SHORT
-import com.google.android.material.snackbar.Snackbar
 import com.rdstory.miuiperfsaver.Configuration
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_PERF_SAVED_FIRST
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_SYSTEM
@@ -32,10 +31,10 @@ import com.rdstory.miuiperfsaver.R
 import java.util.*
 
 @SuppressLint("NotifyDataSetChanged")
-class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) :
+class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     RecyclerView.Adapter<InstalledPackageAdapter.ViewHolder>(), SharedPreferences.OnSharedPreferenceChangeListener {
     private val mSharedPreferences: SharedPreferences = prefs
-    private val mPackageManager: PackageManager = pkgMgr
+    private val mPackageManager: PackageManager = context.packageManager
     private var mInstalledPackages: MutableList<PackageInfoCache> = ArrayList()
     private val mFilteredPackages: MutableList<PackageInfoCache> = ArrayList()
     private var mFilterQuery = ""
@@ -77,7 +76,7 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
         val isSystemApp: Boolean
             get() = hasFlag(ApplicationInfo.FLAG_SYSTEM)
         val isPerfSaved: Boolean
-            get() = Configuration.isEnabled(packageName)
+            get() = Configuration.isPerfSaved(packageName)
         val installTime: Long
             get() = pkg.firstInstallTime
         val updateTime: Long
@@ -181,38 +180,7 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
-        CompoundButton.OnCheckedChangeListener, View.OnClickListener {
-        private val icon: AppCompatImageView = itemView.findViewById(R.id.icon)
-        private val applicationLabel: AppCompatTextView = itemView.findViewById(R.id.application_label)
-        private val packageName: AppCompatTextView = itemView.findViewById(R.id.package_name)
-        private val toggle: SwitchCompat = itemView.findViewById(R.id.toggle)
-        private var pkg: PackageInfoCache? = null
-
-        fun bind(pkg: PackageInfoCache) {
-            this.pkg = pkg
-            val context: Context = itemView.context
-            val pm: PackageManager = context.packageManager
-            icon.setImageDrawable(pkg.getIcon(pm))
-            applicationLabel.text = pkg.getLabel(pm)
-            applicationLabel.setTypeface(null, getTypeFace(pkg.isSystemApp, pkg.isDebugApp))
-            packageName.text = pkg.packageName
-            toggle.setOnCheckedChangeListener(null)
-            toggle.isChecked = Configuration.isEnabled(pkg.packageName)
-            toggle.setOnCheckedChangeListener(this)
-        }
-
-        override fun onCheckedChanged(button: CompoundButton, isChecked: Boolean) {
-            val packageName = pkg?.packageName ?: return
-            if (isChecked) Configuration.add(packageName) else Configuration.remove(packageName)
-            //val snackbar: Snackbar =
-            //    Snackbar.make(itemView, R.string.restart_required, LENGTH_SHORT)
-            //snackbar.setAction(R.string.dismiss) { snackbar.dismiss() }
-            //snackbar.show()
-        }
-
-        override fun onClick(view: View) {
-            toggle.toggle()
-        }
+        View.OnClickListener, AdapterView.OnItemSelectedListener {
 
         companion object {
             private fun getTypeFace(system: Boolean, debug: Boolean): Int {
@@ -222,8 +190,52 @@ class InstalledPackageAdapter(pkgMgr: PackageManager, prefs: SharedPreferences) 
             }
         }
 
+        private val icon: AppCompatImageView = itemView.findViewById(R.id.icon)
+        private val applicationLabel: AppCompatTextView = itemView.findViewById(R.id.application_label)
+        private val packageName: AppCompatTextView = itemView.findViewById(R.id.package_name)
+        private val fpsSpinner: AppCompatSpinner = itemView.findViewById(R.id.fps_spinner)
+        private var pkg: PackageInfoCache? = null
+
         init {
             itemView.setOnClickListener(this)
+        }
+
+        fun bind(pkg: PackageInfoCache) {
+            this.pkg = pkg
+            val context: Context = itemView.context
+            val pm: PackageManager = context.packageManager
+            icon.setImageDrawable(pkg.getIcon(pm))
+            applicationLabel.text = pkg.getLabel(pm)
+            applicationLabel.setTypeface(null, getTypeFace(pkg.isSystemApp, pkg.isDebugApp))
+            packageName.text = pkg.packageName
+            fpsSpinner.adapter ?: let {
+                val items = Configuration.supportedFPS.map { "$it Hz" }.toMutableList().apply {
+                    add(0, context.getString(R.string.fps_value_default))
+                }
+                fpsSpinner.adapter = object : ArrayAdapter<String>(itemView.context, android.R.layout.simple_spinner_item, items) {
+                    init {
+                        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                    }
+                    override fun getItemId(position: Int): Long {
+                        return (position - 1).toLong() // ignore first value
+                    }
+                }
+                fpsSpinner.onItemSelectedListener = this
+            }
+            fpsSpinner.setSelection(Configuration.fpsIndex(pkg.packageName) + 1)
+        }
+
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            val packageName = pkg?.packageName ?: return
+            Configuration.setFps(packageName, Configuration.supportedFPS.getOrNull(id.toInt()))
+        }
+
+        override fun onNothingSelected(parent: AdapterView<*>?) {
+            // ignore
+        }
+
+        override fun onClick(view: View) {
+            fpsSpinner.performClick()
         }
     }
 }

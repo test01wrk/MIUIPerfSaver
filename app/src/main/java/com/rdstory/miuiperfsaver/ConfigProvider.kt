@@ -14,24 +14,25 @@ import com.rdstory.miuiperfsaver.BuildConfig.CONFIG_PROVIDER_AUTHORITY
 class ConfigProvider : ContentProvider() {
     companion object {
         private const val COLUMN_PKG = "package_name"
+        private const val COLUMN_PKG_FPS = "package_fps"
         private val APP_LIST_URI = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/app_list")
 
-        fun getSavedAppList(context: Context): Collection<String>? {
+        fun getSavedAppConfig(context: Context): Map<String, Int>? {
             val cursor = context.contentResolver.query(APP_LIST_URI, null, null, null)
             cursor ?: return null
-            val appList = arrayListOf<String>()
+            val appFpsMap = mutableMapOf<String, Int>()
             if (cursor.moveToFirst()) {
                 do {
-                    cursor.getColumnIndex(COLUMN_PKG).takeIf { it >= 0 }?.let {
-                        appList.add(cursor.getString(it))
-                    }
+                    val pkgIndex = cursor.getColumnIndex(COLUMN_PKG).takeIf { it >= 0 } ?: continue
+                    val pkgFpsIndex = cursor.getColumnIndex(COLUMN_PKG_FPS).takeIf { it >= 0 } ?: continue
+                    appFpsMap[cursor.getString(pkgIndex)] = cursor.getInt(pkgFpsIndex)
                 } while (cursor.moveToNext())
             }
             cursor.close()
-            return appList
+            return appFpsMap
         }
 
-        fun observeSavedAppList(context: Context, callback: () -> Unit) {
+        fun observeSavedAppChange(context: Context, callback: () -> Unit) {
             context.contentResolver.registerContentObserver(
                 APP_LIST_URI,
                 false,
@@ -60,13 +61,13 @@ class ConfigProvider : ContentProvider() {
         sortOrder: String?
     ): Cursor {
         val apps = Configuration.getAll()
-        return MatrixCursor(arrayOf(COLUMN_PKG)).apply {
-            apps.forEach { newRow().add(it) }
+        return MatrixCursor(arrayOf(COLUMN_PKG, COLUMN_PKG_FPS)).apply {
+            apps.forEach { newRow().add(it.key).add(it.value) }
         }
     }
 
-    override fun getType(uri: Uri): String {
-        return "plain"
+    override fun getType(uri: Uri): String? {
+        return null
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {

@@ -24,7 +24,7 @@ class HookMain : IXposedHookLoadPackage {
         try {
             hook(lpparam)
             XposedBridge.log("[${LOG_TAG}] process hooked: ${lpparam.processName}")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             XposedBridge.log("[${LOG_TAG}] failed to hook process: ${lpparam.processName}. ${e.message}")
         }
     }
@@ -74,8 +74,8 @@ class HookMain : IXposedHookLoadPackage {
 
     private object FPSSaver {
         private var initialized = false
-        private val savedApps = mutableSetOf<String>()
-        private var maxFPS: Int? = null
+        private val savedApps = mutableMapOf<String, Int>()
+        private var supportFps: IntArray? = null
         var excludeCookie = 247
             private set
         private var hookedExcludeAppSet: ArraySet<String>? = null
@@ -85,30 +85,30 @@ class HookMain : IXposedHookLoadPackage {
                 return
             }
             initialized = true
-            maxFPS = thisObject.callMethod("getMaxFPS") ?: return
+            supportFps = thisObject.callMethod("getSupportFps") ?: return
             val context: Context = thisObject.getObjectField("mContext") ?: return
             hookedExcludeAppSet = thisObject.getObjectField("mExcludeApps")
             thisObject.getObjectField<Int>("COOKIE_EXCLUDE")?.let { excludeCookie = it }
-            ConfigProvider.observeSavedAppList(context) {
-                ConfigProvider.getSavedAppList(context)?.let {
+            ConfigProvider.observeSavedAppChange(context) {
+                ConfigProvider.getSavedAppConfig(context)?.let {
                     XposedBridge.log("[${LOG_TAG}] saved app list updated: ${savedApps.size} -> ${it.size}")
                     savedApps.clear()
-                    savedApps.addAll(it)
+                    savedApps.putAll(it)
                 }
             }
-            ConfigProvider.getSavedAppList(context)?.let { savedApps.addAll(it) }
-            XposedBridge.log("[${LOG_TAG}] initialized. maxFPS: $maxFPS, apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
+            ConfigProvider.getSavedAppConfig(context)?.let { savedApps.putAll(it) }
+            XposedBridge.log("[${LOG_TAG}] initialized. supportFps: ${supportFps?.toList()}, apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
         }
 
         fun getTargetFPS(pkg: String, fps: Int, cookie: Int): Int? {
-            val maxFPS = maxFPS?.takeIf {
-                (fps < it || cookie != excludeCookie) && savedApps.contains(pkg)
+            val pkgFps = savedApps[pkg]?.takeIf {
+                (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
             } ?: return null
             var changed = ""
-            changed += if (fps != maxFPS) "[fps: $fps -> $maxFPS]" else "[fps: $fps]"
+            changed += if (fps != pkgFps) "[fps: $fps -> $pkgFps]" else "[fps: $fps]"
             changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
             XposedBridge.log("[${LOG_TAG}] $changed perf saved: $pkg")
-            return maxFPS
+            return pkgFps
         }
 
         fun excludeIfMatch(foregroundInfo: Any?): (() -> Unit)? {

@@ -34,7 +34,7 @@ class AppsFragment : Fragment() {
         mAppsViewModel = ViewModelProvider(requireActivity()).get(AppsViewModel::class.java)
         val root: View = inflater.inflate(R.layout.fragment_apps, container, false)
         val packages: RecyclerView = root.findViewById(R.id.packages)
-        mAdapter = InstalledPackageAdapter(requireContext().packageManager, mSharedPreferences)
+        mAdapter = InstalledPackageAdapter(requireContext(), mSharedPreferences)
         packages.adapter = mAdapter
         mAppsViewModel.installedPackages.observe(
             viewLifecycleOwner,

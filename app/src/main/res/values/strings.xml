@@ -37,4 +37,5 @@
     <string name="visit_github">GitHub</string>
 
     <string name="url_project_page" translatable="false">https://github.com/test01wrk/MIUIPerfSaver</string>
+    <string name="fps_value_default">Default</string>
 </resources>
