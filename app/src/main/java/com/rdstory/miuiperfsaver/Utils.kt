@@ -6,7 +6,7 @@ import android.hardware.display.DisplayManager
 object Utils {
     fun getSupportFps(context: Context): List<Int>? {
         return (context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager).getDisplay(0)
-            .supportedModes?.map { it.refreshRate.toInt() }?.sorted()?.reversed()
+            .supportedModes?.mapTo(mutableSetOf()) { it.refreshRate.toInt() }?.sorted()?.reversed()
     }
 
     fun getMaxFPS(context: Context): Int? {
