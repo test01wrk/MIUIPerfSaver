@@ -38,4 +38,7 @@
 
     <string name="url_project_page" translatable="false">https://github.com/test01wrk/MIUIPerfSaver</string>
     <string name="fps_value_default">Default</string>
+    <string name="fps_value_system">System</string>
+    <string name="global_default_fps">Default Screen Refresh Rate</string>
+    <string name="global_default_fps_desc">Set global default screen refresh rate. Default value for all unmodified applications</string>
 </resources>

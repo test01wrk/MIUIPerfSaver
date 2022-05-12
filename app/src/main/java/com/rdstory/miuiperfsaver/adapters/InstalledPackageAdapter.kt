@@ -14,12 +14,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.collection.SparseArrayCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.rdstory.miuiperfsaver.Configuration
+import com.rdstory.miuiperfsaver.Constants.FAKE_PKG_DEFAULT_FPS
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_PERF_SAVED_FIRST
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_SYSTEM
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SORT_ORDER
@@ -37,10 +39,16 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     private val mPackageManager: PackageManager = context.packageManager
     private var mInstalledPackages: MutableList<PackageInfoCache> = ArrayList()
     private val mFilteredPackages: MutableList<PackageInfoCache> = ArrayList()
+    private val mFixedHeaders: MutableList<FakePackage> = ArrayList()
     private var mFilterQuery = ""
 
     init {
         setHasStableIds(true)
+        mFixedHeaders.add(FakePackage(FakePackageType.DEFAULT_FPS).apply {
+            icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
+            title = context.getString(R.string.global_default_fps)
+            description = context.getString(R.string.global_default_fps_desc)
+        })
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
@@ -50,6 +58,16 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
                 notifyDataSetChanged()
             }
         }
+    }
+
+    enum class FakePackageType(val pkg: String) {
+        DEFAULT_FPS(FAKE_PKG_DEFAULT_FPS)
+    }
+
+    class FakePackage(val type: FakePackageType) {
+        var icon: Drawable? = null
+        var title: String? = null
+        var description: String? = null
     }
 
     class PackageInfoCache(var pkg: PackageInfo) {
@@ -90,15 +108,28 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(mFilteredPackages[position])
+        when {
+            position < mFixedHeaders.size -> holder.bind(mFixedHeaders[position])
+            else -> holder.bind(mFilteredPackages[position - mFixedHeaders.size])
+        }
     }
 
     override fun getItemCount(): Int {
-        return mFilteredPackages.size
+        return mFixedHeaders.size + mFilteredPackages.size
     }
 
     override fun getItemId(position: Int): Long {
-        return mFilteredPackages[position].packageName.hashCode().toLong()
+        return when {
+            position < mFixedHeaders.size -> mFixedHeaders[position].type.pkg.hashCode().toLong()
+            else -> mFilteredPackages[position - mFixedHeaders.size].packageName.hashCode().toLong()
+        }
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return when {
+            position < mFixedHeaders.size -> mFixedHeaders[position]::class.java.hashCode()
+            else -> mFilteredPackages[position - mFixedHeaders.size]::class.java.hashCode()
+        }
     }
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
@@ -195,38 +226,65 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         private val packageName: AppCompatTextView = itemView.findViewById(R.id.package_name)
         private val fpsSpinner: AppCompatSpinner = itemView.findViewById(R.id.fps_spinner)
         private var pkg: PackageInfoCache? = null
+        private var fakePkg: FakePackage? = null
 
         init {
             itemView.setOnClickListener(this)
         }
 
+        fun bind(pkg: FakePackage) {
+            this.bind(pkg, null)
+        }
+
         fun bind(pkg: PackageInfoCache) {
+            this.bind(null, pkg)
+        }
+
+        private fun bind(fakePkg: FakePackage?, pkg: PackageInfoCache?) {
             this.pkg = pkg
+            this.fakePkg = fakePkg
             val context: Context = itemView.context
             val pm: PackageManager = context.packageManager
-            icon.setImageDrawable(pkg.getIcon(pm))
-            applicationLabel.text = pkg.getLabel(pm)
-            applicationLabel.setTypeface(null, getTypeFace(pkg.isSystemApp, pkg.isDebugApp))
-            packageName.text = pkg.packageName
-            fpsSpinner.adapter ?: let {
-                val items = Configuration.supportedFPS.map { "$it Hz" }.toMutableList().apply {
-                    add(0, context.getString(R.string.fps_value_default))
-                }
-                fpsSpinner.adapter = object : ArrayAdapter<String>(itemView.context, android.R.layout.simple_spinner_item, items) {
-                    init {
-                        setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                    }
-                    override fun getItemId(position: Int): Long {
-                        return (position - 1).toLong() // ignore first value
-                    }
-                }
-                fpsSpinner.onItemSelectedListener = this
+            val iconDrawable = fakePkg?.icon ?: pkg?.getIcon(pm)
+            val title = fakePkg?.title ?: pkg?.getLabel(pm)
+            val desc = fakePkg?.description ?: pkg?.packageName
+            icon.setImageDrawable(iconDrawable)
+            applicationLabel.text = title
+            pkg?.let {
+                applicationLabel.setTypeface(null, getTypeFace(pkg.isSystemApp, pkg.isDebugApp))
+            } ?: let {
+                applicationLabel.setTypeface(null, getTypeFace(system = true, debug = false))
             }
-            fpsSpinner.setSelection(Configuration.fpsIndex(pkg.packageName) + 1)
+            packageName.text = desc
+            fpsSpinner.adapter = fpsSpinner.adapter ?: createSpinnerAdapter()
+            fpsSpinner.onItemSelectedListener = this
+            val spinnerIndex = (fakePkg?.type?.pkg ?: pkg?.packageName)?.let {
+                Configuration.fpsIndex(it)
+            } ?: -1
+            fpsSpinner.setSelection(spinnerIndex + 1)
+        }
+
+        private fun createSpinnerAdapter(): ArrayAdapter<String> {
+            val items = Configuration.supportedFPS.map { "$it Hz" }.toMutableList().apply {
+                val defaultResId = if (fakePkg?.type?.pkg === FAKE_PKG_DEFAULT_FPS) {
+                    R.string.fps_value_system
+                } else {
+                    R.string.fps_value_default
+                }
+                add(0, itemView.context.getString(defaultResId))
+            }
+            return object : ArrayAdapter<String>(itemView.context, android.R.layout.simple_spinner_item, items) {
+                init {
+                    setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                }
+                override fun getItemId(position: Int): Long {
+                    return (position - 1).toLong() // ignore first value
+                }
+            }
         }
 
         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            val packageName = pkg?.packageName ?: return
+            val packageName = fakePkg?.type?.pkg ?: pkg?.packageName ?: return
             Configuration.setFps(packageName, Configuration.supportedFPS.getOrNull(id.toInt()))
         }
 

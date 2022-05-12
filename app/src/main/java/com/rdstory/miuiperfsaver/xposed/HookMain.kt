@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.ArraySet
 import androidx.annotation.Keep
 import com.rdstory.miuiperfsaver.ConfigProvider
+import com.rdstory.miuiperfsaver.Constants.FAKE_PKG_DEFAULT_FPS
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
@@ -91,17 +92,21 @@ class HookMain : IXposedHookLoadPackage {
             thisObject.getObjectField<Int>("COOKIE_EXCLUDE")?.let { excludeCookie = it }
             ConfigProvider.observeSavedAppChange(context) {
                 ConfigProvider.getSavedAppConfig(context)?.let {
-                    XposedBridge.log("[${LOG_TAG}] saved app list updated: ${savedApps.size} -> ${it.size}")
+                    XposedBridge.log("[${LOG_TAG}] config updated. " +
+                            "global: ${it[FAKE_PKG_DEFAULT_FPS]}, " +
+                            "apps: ${savedApps.size} -> ${it.size}")
                     savedApps.clear()
                     savedApps.putAll(it)
                 }
             }
             ConfigProvider.getSavedAppConfig(context)?.let { savedApps.putAll(it) }
-            XposedBridge.log("[${LOG_TAG}] initialized. supportFps: ${supportFps?.toList()}, apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
+            XposedBridge.log("[${LOG_TAG}] initialized. supportFps: ${supportFps?.toList()}, " +
+                    "global: ${savedApps[FAKE_PKG_DEFAULT_FPS]}, " +
+                    "apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
         }
 
         fun getTargetFPS(pkg: String, fps: Int, cookie: Int): Int? {
-            val pkgFps = savedApps[pkg]?.takeIf {
+            val pkgFps = (savedApps[pkg] ?: savedApps[FAKE_PKG_DEFAULT_FPS])?.takeIf {
                 (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
             } ?: return null
             var changed = ""
@@ -114,8 +119,10 @@ class HookMain : IXposedHookLoadPackage {
         fun excludeIfMatch(foregroundInfo: Any?): (() -> Unit)? {
             val hookedAppSet = hookedExcludeAppSet ?: return null
             foregroundInfo?.getObjectField<String>("mForegroundPackageName")
-                ?.takeIf { pkg -> savedApps.contains(pkg) && hookedAppSet.add(pkg) }
-                ?.let { pkg ->
+                ?.takeIf { pkg ->
+                    (savedApps.contains(pkg) || savedApps.contains(FAKE_PKG_DEFAULT_FPS))
+                            && hookedAppSet.add(pkg)
+                }?.let { pkg ->
                     XposedBridge.log("[${LOG_TAG}] [excluded] perf saved: $pkg")
                     return { hookedAppSet.remove(pkg) }
                 }

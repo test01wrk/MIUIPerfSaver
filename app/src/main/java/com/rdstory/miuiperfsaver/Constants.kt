@@ -12,4 +12,6 @@ object Constants {
     const val PREF_KEY_SHOW_PERF_SAVED_FIRST = "preference_show_saved_first"
     const val PREF_KEY_SHOW_SYSTEM = "preference_show_system"
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
+
+    const val FAKE_PKG_DEFAULT_FPS = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DEFAULT_FPS"
 }
