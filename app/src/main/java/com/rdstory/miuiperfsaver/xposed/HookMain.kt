@@ -2,6 +2,7 @@ package com.rdstory.miuiperfsaver.xposed
 
 import android.content.Context
 import android.util.ArraySet
+import android.util.Log
 import androidx.annotation.Keep
 import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.Constants.FAKE_PKG_DEFAULT_FPS
@@ -109,10 +110,12 @@ class HookMain : IXposedHookLoadPackage {
             val pkgFps = (savedApps[pkg] ?: savedApps[FAKE_PKG_DEFAULT_FPS])?.takeIf {
                 (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
             } ?: return null
-            var changed = ""
-            changed += if (fps != pkgFps) "[fps: $fps -> $pkgFps]" else "[fps: $fps]"
-            changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
-            XposedBridge.log("[${LOG_TAG}] $changed perf saved: $pkg")
+            if (Log.isLoggable(LOG_TAG, Log.INFO)) {
+                var changed = ""
+                changed += if (fps != pkgFps) "[fps: $fps -> $pkgFps]" else "[fps: $fps]"
+                changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
+                XposedBridge.log("[${LOG_TAG}] $changed perf saved: $pkg")
+            }
             return pkgFps
         }
 
@@ -123,7 +126,9 @@ class HookMain : IXposedHookLoadPackage {
                     (savedApps.contains(pkg) || savedApps.contains(FAKE_PKG_DEFAULT_FPS))
                             && hookedAppSet.add(pkg)
                 }?.let { pkg ->
-                    XposedBridge.log("[${LOG_TAG}] [excluded] perf saved: $pkg")
+                    if (Log.isLoggable(LOG_TAG, Log.INFO)) {
+                        XposedBridge.log("[${LOG_TAG}] [excluded] perf saved: $pkg")
+                    }
                     return { hookedAppSet.remove(pkg) }
                 }
             return null
