@@ -10,8 +10,10 @@ import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.RecyclerView
+import com.rdstory.miuiperfsaver.Configuration
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_CMD
+import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
 
 class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerView.Adapter<JoyoseSettingAdapter.ViewHolder>() {
@@ -21,8 +23,8 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         var desc: String? = null
     }
 
-    class ProfileProcessItem : SettingItem() {
-        var selections: List<Pair<String, String>>? = null
+    class ProfileRuleItem : SettingItem() {
+        var selections: List<Pair<JoyoseProfileRule, String>>? = null
     }
 
     class GotoLocalSettingsButtonItem : SettingItem() {
@@ -38,21 +40,25 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         fun bind(item: SettingItem) {
             titleView.text = item.title
             descView.text = item.desc
-            if (item is ProfileProcessItem) {
+            if (item is ProfileRuleItem) {
                 buttonView.visibility = View.GONE
                 spinnerView.visibility = View.VISIBLE
                 val items = item.selections ?: emptyList()
-                val displayItems = items.map { it.second }
-                spinnerView.adapter = ArrayAdapter(itemView.context, android.R.layout.simple_spinner_item, displayItems).apply {
+                val rules = items.map { it.first }
+                val ruleNames = items.map { it.second }
+                spinnerView.adapter = ArrayAdapter(itemView.context, android.R.layout.simple_spinner_item, ruleNames).apply {
                     setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
                 }
                 spinnerView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                     override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                        val processId = items[position].first
+                        Configuration.setJoyoseProfileRule(rules[position])
                     }
                     override fun onNothingSelected(parent: AdapterView<*>?) {}
                 }
-                spinnerView.setSelection(0)
+                val selectIndex = rules.indexOfFirst {
+                    it.value == Configuration.joyoseProfileRule
+                }.takeIf { it >= 0 }
+                spinnerView.setSelection(selectIndex ?: 0)
             } else if (item is GotoLocalSettingsButtonItem) {
                 buttonView.visibility = View.VISIBLE
                 spinnerView.visibility = View.GONE

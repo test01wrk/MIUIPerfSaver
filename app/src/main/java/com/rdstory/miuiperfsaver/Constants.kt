@@ -12,9 +12,19 @@ object Constants {
     const val PREF_KEY_SHOW_PERF_SAVED_FIRST = "preference_show_saved_first"
     const val PREF_KEY_SHOW_SYSTEM = "preference_show_system"
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
+    const val PREF_KEY_JOYOSE_PROFILE_RULE = "preference_joyose_profile_rule"
 
     const val FAKE_PKG_DEFAULT_FPS = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DEFAULT_FPS"
     const val JOYOSE_PKG = "com.xiaomi.joyose"
     const val JOYOSE_ACTIVITY = ".cloud.LocalCtrlActivity"
     const val START_JOYOSE_CMD = "am start -n $JOYOSE_PKG/$JOYOSE_ACTIVITY"
+    const val JOYOSE_PROFILE_RULE_BLOCK = "block"
+    const val JOYOSE_PROFILE_RULE_RM_APP_LIST = "remove_app_list"
+    const val JOYOSE_PROFILE_RULE_RM_APP_DFPS = "remove_app_dynamic_fps"
+}
+
+enum class JoyoseProfileRule(val value: String) {
+    BLOCK(Constants.JOYOSE_PROFILE_RULE_BLOCK),
+    RM_APP_LIST(Constants.JOYOSE_PROFILE_RULE_RM_APP_LIST),
+    RM_APP_DFPS(Constants.JOYOSE_PROFILE_RULE_RM_APP_DFPS)
 }

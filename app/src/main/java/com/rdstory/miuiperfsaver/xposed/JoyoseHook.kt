@@ -1,11 +1,15 @@
 package com.rdstory.miuiperfsaver.xposed
 
+import android.content.Context
+import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
+import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import de.robv.android.xposed.callbacks.XC_LoadPackage
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -17,13 +21,30 @@ import java.util.*
 object JoyoseHook {
     fun initHook(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName != JOYOSE_PKG) return
+
+        val joyoseProfileRuleHolder = arrayOf(JoyoseProfileRule.BLOCK)
+        XposedHelpers.findAndHookMethod("android.app.Application", lpparam.classLoader, "onCreate",
+            object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    val context = param.thisObject as Context
+                    val updateJoyoseRule = fun() {
+                        ConfigProvider.getJoyoseProfileRule(context)?.let {
+                            val old = joyoseProfileRuleHolder[0]
+                            joyoseProfileRuleHolder[0] = it
+                            XposedBridge.log("[${LOG_TAG}] joyose profile rule updated: ${old.value} -> ${it.value}")
+                        }
+                    }
+                    ConfigProvider.observeProfileRuleChange(context, updateJoyoseRule)
+                    updateJoyoseRule()
+                }
+            })
         XposedHelpers.findAndHookConstructor(HttpURLConnection::class.java, URL::class.java,
             object : XC_MethodHook() {
                 var httpImplHooked = false
                 override fun afterHookedMethod(param: MethodHookParam) {
                     if (httpImplHooked) return
                     httpImplHooked = true
-                    hookHttpImpl(param.thisObject::class.java)
+                    hookHttpImpl(param.thisObject::class.java, joyoseProfileRuleHolder)
                 }
             })
         XposedBridge.log("[${LOG_TAG}] process hooked: ${lpparam.processName}")
@@ -32,7 +53,7 @@ object JoyoseHook {
     /**
      * Hook HttpURLConnection used to request the cloud profile, obfuscated business code may change
      */
-    private fun hookHttpImpl(httpImplClass: Class<*>) {
+    private fun hookHttpImpl(httpImplClass: Class<*>, ruleHolder: Array<JoyoseProfileRule>) {
         val inputStreamMap = WeakHashMap<HttpURLConnection, InputStream>()
         XposedHelpers.findAndHookMethod(httpImplClass, "getInputStream", object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
@@ -46,7 +67,7 @@ object JoyoseHook {
                     }
                     try {
                         val bytes = (param.result as InputStream).use { it.readBytes() }
-                        val hackProfile = hackProfile(String(bytes, Charsets.UTF_8))
+                        val hackProfile = hackProfile(String(bytes, Charsets.UTF_8), ruleHolder[0])
                         val newStream = ByteArrayInputStream(hackProfile.toByteArray(Charsets.UTF_8))
                         inputStreamMap[con] = newStream
                         param.result = newStream
@@ -80,7 +101,12 @@ object JoyoseHook {
      * Hack joyose profile here.
      * Not sure what it does exactly, but "dynamic_fps" is known to be used to limit game FPS
      */
-    private fun hackProfile(profileResp: String): String {
+    private fun hackProfile(profileResp: String, profileRule: JoyoseProfileRule): String {
+        XposedBridge.log("[$LOG_TAG] cloud profile: ${profileResp.length} bytes, rule: ${profileRule.value}")
+        if (profileRule == JoyoseProfileRule.BLOCK) {
+            XposedBridge.log("[$LOG_TAG] cloud profile blocked")
+            return ""
+        }
         val config = JSONObject(profileResp)
         if (config.optString("status") == "true" && config.optInt("msgCode") == 200) {
             val profile = JSONObject(config.optString("profile"))
@@ -90,13 +116,17 @@ object JoyoseHook {
                 ?.optJSONObject("booster_config")
             val overrideConfig = boosterConfig?.optJSONArray("ovrride_config")
             if (overrideConfig != null){
-                for (i in 0 until overrideConfig.length()) {
-                    overrideConfig.optJSONObject(i)?.let { o ->
-                        o.remove("dynamic_fps")
-                        o.remove("dynamic_fps_M")
+                if (profileRule == JoyoseProfileRule.RM_APP_DFPS) {
+                    for (i in 0 until overrideConfig.length()) {
+                        overrideConfig.optJSONObject(i)?.let { o ->
+                            o.remove("dynamic_fps")
+                            o.remove("dynamic_fps_M")
+                        }
                     }
+                } else if (profileRule == JoyoseProfileRule.RM_APP_LIST) {
+                    boosterConfig.put("ovrride_config", JSONArray())
                 }
-                XposedBridge.log("[$LOG_TAG] hack ovrride_config: ${overrideConfig.length()}")
+                XposedBridge.log("[$LOG_TAG] cloud profile rule processed: ${overrideConfig.length()}")
             }
             config.put("profile", profile.toString())
             return config.toString()

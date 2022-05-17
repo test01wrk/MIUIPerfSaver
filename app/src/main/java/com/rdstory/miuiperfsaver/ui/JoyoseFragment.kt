@@ -14,6 +14,7 @@ import com.rdstory.miuiperfsaver.Constants.JOYOSE_ACTIVITY
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_CMD
+import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
 import com.rdstory.miuiperfsaver.adapters.JoyoseSettingAdapter
 
@@ -34,13 +35,13 @@ class JoyoseFragment : Fragment() {
 
     private fun getSettingItems(): List<JoyoseSettingAdapter.SettingItem> {
         val list = arrayListOf<JoyoseSettingAdapter.SettingItem>(
-            JoyoseSettingAdapter.ProfileProcessItem().apply {
-                title = getString(R.string.joyose_profile_process_method)
-                desc = getString(R.string.joyose_profile_process_method_desc)
+            JoyoseSettingAdapter.ProfileRuleItem().apply {
+                title = getString(R.string.joyose_profile_process_rule)
+                desc = getString(R.string.joyose_profile_process_rule_desc)
                 selections = arrayListOf(
-                    Pair("block", getString(R.string.joyose_profile_process_method_block)),
-                    Pair("remove_app_list", getString(R.string.joyose_profile_process_method_rm_app_list)),
-                    Pair("remove_app_dynamic_fps", getString(R.string.joyose_profile_process_method_rm_app_dfps))
+                    Pair(JoyoseProfileRule.BLOCK, getString(R.string.joyose_profile_process_rule_block)),
+                    Pair(JoyoseProfileRule.RM_APP_LIST, getString(R.string.joyose_profile_process_rule_rm_app_list)),
+                    Pair(JoyoseProfileRule.RM_APP_DFPS, getString(R.string.joyose_profile_process_rule_rm_app_dfps))
                 )
             }
         )

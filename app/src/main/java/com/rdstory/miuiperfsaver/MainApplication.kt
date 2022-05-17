@@ -7,6 +7,7 @@ import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 
 class MainApplication: Application() {
     companion object {
+        lateinit var application: MainApplication
         @Keep
         fun getActiveXposedVersion(): Int {
             Log.d(LOG_TAG, "Xposed framework is inactive.")
@@ -14,8 +15,12 @@ class MainApplication: Application() {
         }
     }
 
+    init {
+        application = this
+    }
+
     override fun onCreate() {
         super.onCreate()
-        Configuration.init(this)
+        Configuration.init()
     }
 }
