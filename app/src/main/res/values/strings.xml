@@ -13,7 +13,8 @@
     <string name="nav_header_subtitle">@string/app_xposed_description</string>
     <string name="nav_header_desc">Navigation header</string>
 
-    <string name="menu_apps">Apps</string>
+    <string name="menu_apps">Refresh rate</string>
+    <string name="menu_joyose">Joyose</string>
     <string name="menu_about">About</string>
 
     <string name="action_search">Search</string>
@@ -41,4 +42,12 @@
     <string name="fps_value_system">System</string>
     <string name="global_default_fps">Default Screen Refresh Rate</string>
     <string name="global_default_fps_desc">Set global default screen refresh rate. Default value for all unmodified applications</string>
+    <string name="joyose_profile_process_method">Cloud strategy rule</string>
+    <string name="joyose_profile_process_method_block">Block</string>
+    <string name="joyose_profile_process_method_rm_app_list">Remove App Rules</string>
+    <string name="joyose_profile_process_method_rm_app_dfps">Remove Dynamic FPS</string>
+    <string name="joyose_open_local_settings">Start Joyose Local Settings</string>
+    <string name="joyose_open_local_settings_desc">(root permission required) $ %1$s</string>
+    <string name="joyose_profile_process_method_desc">Block or modify cloud strategy</string>
+    <string name="open">Start</string>
 </resources>

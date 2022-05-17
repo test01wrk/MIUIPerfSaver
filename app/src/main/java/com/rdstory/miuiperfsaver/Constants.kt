@@ -14,4 +14,7 @@ object Constants {
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
 
     const val FAKE_PKG_DEFAULT_FPS = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DEFAULT_FPS"
+    const val JOYOSE_PKG = "com.xiaomi.joyose"
+    const val JOYOSE_ACTIVITY = ".cloud.LocalCtrlActivity"
+    const val START_JOYOSE_CMD = "am start -n $JOYOSE_PKG/$JOYOSE_ACTIVITY"
 }

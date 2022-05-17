@@ -13,7 +13,7 @@
     <string name="nav_header_subtitle">@string/app_xposed_description</string>
     <string name="nav_header_desc">Navigation header</string>
 
-    <string name="menu_apps">应用列表</string>
+    <string name="menu_apps">刷新率</string>
     <string name="menu_about">关于</string>
 
     <string name="action_search">搜索</string>
@@ -39,5 +39,14 @@
     <string name="global_default_fps">默认刷新率</string>
     <string name="global_default_fps_desc">设置全局默认刷新率。所有未单独配置的应用默认使用此刷新率</string>
     <string name="fps_value_system">系统值</string>
+    <string name="menu_joyose">Joyose</string>
+    <string name="joyose_profile_process_method_desc">可完全禁止下发，也可修改部分规则内容</string>
+    <string name="joyose_profile_process_method_block">禁止下发</string>
+    <string name="joyose_profile_process_method_rm_app_list">删除应用列表</string>
+    <string name="joyose_profile_process_method_rm_app_dfps">删除帧率限制</string>
+    <string name="joyose_open_local_settings">打开 Joyose 本地配置页面</string>
+    <string name="joyose_open_local_settings_desc">"（需 root 权限）$ %1$s"</string>
+    <string name="joyose_profile_process_method">云控规则处理方式</string>
+    <string name="open">打开</string>
 
 </resources>

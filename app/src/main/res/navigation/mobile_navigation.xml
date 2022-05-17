@@ -7,8 +7,14 @@
 
     <fragment
         android:id="@+id/nav_apps"
-        android:name="com.rdstory.miuiperfsaver.ui.AppsFragment"
+        android:name="com.rdstory.miuiperfsaver.ui.RefreshRateFragment"
         android:label="@string/menu_apps"
+        tools:layout="@layout/fragment_apps" />
+
+    <fragment
+        android:id="@+id/nav_joyose"
+        android:name="com.rdstory.miuiperfsaver.ui.JoyoseFragment"
+        android:label="@string/menu_joyose"
         tools:layout="@layout/fragment_apps" />
 
     <fragment

@@ -1,5 +1,6 @@
 package com.rdstory.miuiperfsaver.xposed
 
+import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -15,7 +16,7 @@ import java.util.*
 
 object JoyoseHook {
     fun initHook(lpparam: XC_LoadPackage.LoadPackageParam) {
-        if (lpparam.packageName != "com.xiaomi.joyose") return
+        if (lpparam.packageName != JOYOSE_PKG) return
         XposedHelpers.findAndHookConstructor(HttpURLConnection::class.java, URL::class.java,
             object : XC_MethodHook() {
                 var httpImplHooked = false

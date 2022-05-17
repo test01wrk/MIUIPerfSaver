@@ -20,7 +20,7 @@ import com.rdstory.miuiperfsaver.R
 import com.rdstory.miuiperfsaver.adapters.InstalledPackageAdapter
 import com.rdstory.miuiperfsaver.viewmodels.AppsViewModel
 
-class AppsFragment : Fragment() {
+class RefreshRateFragment : Fragment() {
     private lateinit var mAppsViewModel: AppsViewModel
     private lateinit var mSharedPreferences: SharedPreferences
     private lateinit var mAdapter: InstalledPackageAdapter
