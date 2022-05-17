@@ -2,5 +2,6 @@
 <resources>
     <string-array name="hook_scope">
         <item>com.miui.powerkeeper</item>
+        <item>com.xiaomi.joyose</item>
     </string-array>
 </resources>
