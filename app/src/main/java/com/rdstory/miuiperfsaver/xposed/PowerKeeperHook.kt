@@ -96,7 +96,7 @@ object PowerKeeperHook {
             val pkgFps = (savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS])?.takeIf {
                 (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
             } ?: return null
-            if (Log.isLoggable(LOG_TAG, Log.INFO)) {
+            if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
                 var changed = ""
                 changed += if (fps != pkgFps) "[fps: $fps -> $pkgFps]" else "[fps: $fps]"
                 changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
@@ -112,7 +112,7 @@ object PowerKeeperHook {
                     (savedApps.contains(pkg) || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
                             && hookedAppSet.add(pkg)
                 }?.let { pkg ->
-                    if (Log.isLoggable(LOG_TAG, Log.INFO)) {
+                    if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
                         XposedBridge.log("[$LOG_TAG] [excluded] perf saved: $pkg")
                     }
                     return { hookedAppSet.remove(pkg) }
