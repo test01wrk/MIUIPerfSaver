@@ -3,8 +3,8 @@
     <string name="app_name_release">MIUI 性能救星</string>
     <string name="app_name_debug">MIUI 性能救星-DEBUG</string>
     <string name="app_xposed_description">移除 MIUI 对应用的性能限制，以最高帧率运行应用</string>
-    <string name="app_xposed_description_xp">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用模块时需要停止\"性能与电量\"应用，后续修改生效应用列表立即生效</string>
-    <string name="app_xposed_description_full">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用模块时需要停止\"性能与电量\"应用，后续修改生效应用列表立即生效。UI 来自 https://github.com/Palatis/XAppDebug</string>
+    <string name="app_xposed_description_xp">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用需要强制停止\"性能与电量\"/\"Joyose\"应用一次并清空\"Joyose\"全部数据，后续修改模块内设置立即生效</string>
+    <string name="app_xposed_description_full">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用需要强制停止\"性能与电量\"/\"Joyose\"应用一次并清空\"Joyose\"全部数据，后续修改模块内设置立即生效。UI 来自 https://github.com/Palatis/XAppDebug</string>
 
     <string name="title_activity_main">@string/app_name</string>
     <string name="navigation_drawer_open">打开抽屉式导航栏</string>
