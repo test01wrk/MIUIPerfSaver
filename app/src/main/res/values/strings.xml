@@ -43,7 +43,7 @@
     <string name="global_default_fps">Default Screen Refresh Rate</string>
     <string name="global_default_fps_desc">Set global default screen refresh rate. Default value for all unmodified applications</string>
     <string name="joyose_profile_process_rule">Cloud Profile Rule</string>
-    <string name="joyose_profile_process_rule_block">Block</string>
+    <string name="joyose_profile_process_rule_block_all">Block All Rules</string>
     <string name="joyose_profile_process_rule_rm_app_list">Remove App Rules</string>
     <string name="joyose_profile_process_rule_rm_app_dfps">Remove Dynamic FPS</string>
     <string name="joyose_open_local_settings">Start Joyose Local Settings</string>

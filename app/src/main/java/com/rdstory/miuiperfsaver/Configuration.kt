@@ -13,7 +13,7 @@ object Configuration {
     private val supportedFPSBackend = arrayListOf<Int>()
     val supportedFPS: List<Int>
         get() = supportedFPSBackend
-    var joyoseProfileRule: String = JoyoseProfileRule.BLOCK.value
+    var joyoseProfileRule: String = JoyoseProfileRule.BLOCK_ALL.value
         private set
 
     fun init() {
@@ -22,7 +22,8 @@ object Configuration {
         sharedPreferences =
             context.getSharedPreferences(SETTINGS_SP_KEY, Context.MODE_PRIVATE)
         joyoseProfileRule = sharedPreferences.getString(PREF_KEY_JOYOSE_PROFILE_RULE, null)
-            ?: JoyoseProfileRule.BLOCK.value
+            ?.takeIf { r -> JoyoseProfileRule.values().indexOfFirst { it.value == r } >= 0 }
+            ?: JoyoseProfileRule.BLOCK_ALL.value
         try {
             sharedPreferences.getStringSet(PREF_KEY_SAVED_APP_LIST, null)
         } catch (ignore: Exception) {
@@ -33,7 +34,7 @@ object Configuration {
             fps?.let { savedApps[pkgAndFps[0]] = it }
         }
         ConfigProvider.notifyAppListChange(context)
-        ConfigProvider.notifyProfileRuleChange(context)
+        ConfigProvider.notifyJoyoseConfigChange(context)
     }
 
     private fun save() {
@@ -77,7 +78,7 @@ object Configuration {
         if (rule.value != joyoseProfileRule) {
             joyoseProfileRule = rule.value
             sharedPreferences.edit().putString(PREF_KEY_JOYOSE_PROFILE_RULE, joyoseProfileRule).apply()
-            ConfigProvider.notifyProfileRuleChange(MainApplication.application)
+            ConfigProvider.notifyJoyoseConfigChange(MainApplication.application)
         }
     }
 }

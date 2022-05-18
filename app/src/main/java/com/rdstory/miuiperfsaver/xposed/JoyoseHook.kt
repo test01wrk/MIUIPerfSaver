@@ -23,19 +23,19 @@ object JoyoseHook {
     fun initHook(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName != JOYOSE_PKG) return
 
-        val joyoseProfileRuleHolder = arrayOf(JoyoseProfileRule.BLOCK)
+        val joyoseProfileRuleHolder = arrayOf(JoyoseProfileRule.BLOCK_ALL)
         XposedHelpers.findAndHookMethod(Application::class.java, "onCreate",
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val context = param.thisObject as Context
                     val updateJoyoseRule = fun() {
-                        ConfigProvider.getJoyoseProfileRule(context)?.let {
+                        ConfigProvider.getJoyoseConfig(context)?.let {
                             val old = joyoseProfileRuleHolder[0]
                             joyoseProfileRuleHolder[0] = it
                             XposedBridge.log("[${LOG_TAG}] joyose profile rule updated: ${old.value} -> ${it.value}")
                         }
                     }
-                    ConfigProvider.observeProfileRuleChange(context, updateJoyoseRule)
+                    ConfigProvider.observeJoyoseConfigChange(context, updateJoyoseRule)
                     updateJoyoseRule()
                 }
             })
@@ -103,7 +103,7 @@ object JoyoseHook {
      */
     private fun hackProfile(profileResp: String, profileRule: JoyoseProfileRule): String {
         XposedBridge.log("[$LOG_TAG] cloud profile length: ${profileResp.length}, rule: ${profileRule.value}")
-        if (profileRule == JoyoseProfileRule.BLOCK) {
+        if (profileRule == JoyoseProfileRule.BLOCK_ALL) {
             XposedBridge.log("[$LOG_TAG] cloud profile blocked")
             return ""
         }

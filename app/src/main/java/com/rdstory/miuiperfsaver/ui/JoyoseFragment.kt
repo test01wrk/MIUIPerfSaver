@@ -33,7 +33,7 @@ class JoyoseFragment : Fragment() {
                 title = getString(R.string.joyose_profile_process_rule)
                 desc = getString(R.string.joyose_profile_process_rule_desc)
                 selections = arrayListOf(
-                    Pair(JoyoseProfileRule.BLOCK, getString(R.string.joyose_profile_process_rule_block)),
+                    Pair(JoyoseProfileRule.BLOCK_ALL, getString(R.string.joyose_profile_process_rule_block_all)),
                     Pair(JoyoseProfileRule.RM_APP_LIST, getString(R.string.joyose_profile_process_rule_rm_app_list)),
                     Pair(JoyoseProfileRule.RM_APP_DFPS, getString(R.string.joyose_profile_process_rule_rm_app_dfps))
                 )

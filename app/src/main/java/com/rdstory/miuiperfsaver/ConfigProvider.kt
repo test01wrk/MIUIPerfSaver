@@ -16,16 +16,16 @@ import com.rdstory.miuiperfsaver.BuildConfig.CONFIG_PROVIDER_AUTHORITY
 class ConfigProvider : ContentProvider() {
     companion object {
         private const val URI_CODE_APP_LIST = 1
-        private const val URI_CODE_JOYOSE_PROFILE_RULE = 2
+        private const val URI_CODE_JOYOSE_CONFIG = 2
 
         private const val COLUMN_PROFILE_RULE = "profile_rule"
         private const val COLUMN_PKG = "package_name"
         private const val COLUMN_PKG_FPS = "package_fps"
         private val APP_LIST_URI = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/app_list")
-        private val PROFILE_RULE_URI = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/joyose_profile_rule")
+        private val JOYOSE_CONFIG_URI = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/joyose_config")
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(CONFIG_PROVIDER_AUTHORITY, "app_list", URI_CODE_APP_LIST)
-            addURI(CONFIG_PROVIDER_AUTHORITY, "joyose_profile_rule", URI_CODE_JOYOSE_PROFILE_RULE)
+            addURI(CONFIG_PROVIDER_AUTHORITY, "joyose_config", URI_CODE_JOYOSE_CONFIG)
         }
 
         fun getSavedAppConfig(context: Context): Map<String, Int>? {
@@ -55,8 +55,8 @@ class ConfigProvider : ContentProvider() {
             )
         }
 
-        fun getJoyoseProfileRule(context: Context): JoyoseProfileRule? {
-            val cursor = context.contentResolver.query(PROFILE_RULE_URI, null, null, null)
+        fun getJoyoseConfig(context: Context): JoyoseProfileRule? {
+            val cursor = context.contentResolver.query(JOYOSE_CONFIG_URI, null, null, null)
             cursor ?: return null
             var rule: JoyoseProfileRule? = null
             if (cursor.moveToFirst()) {
@@ -70,9 +70,9 @@ class ConfigProvider : ContentProvider() {
             return rule
         }
 
-        fun observeProfileRuleChange(context: Context, callback: () -> Unit) {
+        fun observeJoyoseConfigChange(context: Context, callback: () -> Unit) {
             context.contentResolver.registerContentObserver(
-                PROFILE_RULE_URI,
+                JOYOSE_CONFIG_URI,
                 false,
                 object : ContentObserver(Handler(Looper.getMainLooper())) {
                     override fun onChange(selfChange: Boolean) {
@@ -86,8 +86,8 @@ class ConfigProvider : ContentProvider() {
             context.contentResolver.notifyChange(APP_LIST_URI, null)
         }
 
-        fun notifyProfileRuleChange(context: Context) {
-            context.contentResolver.notifyChange(PROFILE_RULE_URI, null)
+        fun notifyJoyoseConfigChange(context: Context) {
+            context.contentResolver.notifyChange(JOYOSE_CONFIG_URI, null)
         }
     }
 
@@ -109,7 +109,7 @@ class ConfigProvider : ContentProvider() {
                     apps.forEach { newRow().add(it.key).add(it.value) }
                 }
             }
-            URI_CODE_JOYOSE_PROFILE_RULE -> {
+            URI_CODE_JOYOSE_CONFIG -> {
                 return MatrixCursor(arrayOf(COLUMN_PROFILE_RULE)).apply {
                     newRow().add(Configuration.joyoseProfileRule)
                 }

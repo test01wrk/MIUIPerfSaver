@@ -40,8 +40,8 @@
     <string name="global_default_fps_desc">设置全局默认刷新率。所有未单独配置的应用默认使用此刷新率</string>
     <string name="fps_value_system">系统值</string>
     <string name="menu_joyose">Joyose</string>
-    <string name="joyose_profile_process_rule_desc">可完全禁止下发，也可修改部分规则内容</string>
-    <string name="joyose_profile_process_rule_block">禁止下发</string>
+    <string name="joyose_profile_process_rule_desc">完全屏蔽云控规则，或修改部分规则内容</string>
+    <string name="joyose_profile_process_rule_block_all">屏蔽全部规则</string>
     <string name="joyose_profile_process_rule_rm_app_list">删除应用列表</string>
     <string name="joyose_profile_process_rule_rm_app_dfps">删除帧率限制</string>
     <string name="joyose_open_local_settings">打开 Joyose 本地配置页面</string>
