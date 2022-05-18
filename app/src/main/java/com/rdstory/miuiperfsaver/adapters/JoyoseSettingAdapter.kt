@@ -40,8 +40,9 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         fun bind(item: SettingItem) {
             titleView.text = item.title
             descView.text = item.desc
+            buttonView.visibility = View.GONE
+            spinnerView.visibility = View.GONE
             if (item is ProfileRuleItem) {
-                buttonView.visibility = View.GONE
                 spinnerView.visibility = View.VISIBLE
                 val items = item.selections ?: emptyList()
                 val rules = items.map { it.first }
@@ -57,11 +58,12 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
                 }
                 val selectIndex = rules.indexOfFirst {
                     it.value == Configuration.joyoseProfileRule
-                }.takeIf { it >= 0 }
-                spinnerView.setSelection(selectIndex ?: 0)
+                }.takeIf { it >= 0 } ?: if (items.isNotEmpty()) 0 else -1
+                if (selectIndex >= 0) {
+                    spinnerView.setSelection(selectIndex)
+                }
             } else if (item is GotoLocalSettingsButtonItem) {
                 buttonView.visibility = View.VISIBLE
-                spinnerView.visibility = View.GONE
                 buttonView.text = item.button
                 buttonView.setOnClickListener {
                     Thread {
@@ -69,8 +71,8 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
                             "su", "-c", START_JOYOSE_CMD
                         ))
                         process.waitFor()
-                        val stdout = String(process.inputStream.readBytes(), Charsets.UTF_8)
-                        val stderr = String(process.errorStream.readBytes(), Charsets.UTF_8)
+                        val stdout = String(process.inputStream.use { it.readBytes() }, Charsets.UTF_8)
+                        val stderr = String(process.errorStream.use { it.readBytes() }, Charsets.UTF_8)
                         Log.i(LOG_TAG, "start joyose settings. stdout: $stdout, stderr: $stderr")
                     }.start()
                 }

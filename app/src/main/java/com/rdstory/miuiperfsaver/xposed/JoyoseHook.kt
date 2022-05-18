@@ -1,5 +1,6 @@
 package com.rdstory.miuiperfsaver.xposed
 
+import android.app.Application
 import android.content.Context
 import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
@@ -23,7 +24,7 @@ object JoyoseHook {
         if (lpparam.packageName != JOYOSE_PKG) return
 
         val joyoseProfileRuleHolder = arrayOf(JoyoseProfileRule.BLOCK)
-        XposedHelpers.findAndHookMethod("android.app.Application", lpparam.classLoader, "onCreate",
+        XposedHelpers.findAndHookMethod(Application::class.java, "onCreate",
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val context = param.thisObject as Context
@@ -38,13 +39,12 @@ object JoyoseHook {
                     updateJoyoseRule()
                 }
             })
-        XposedHelpers.findAndHookConstructor(HttpURLConnection::class.java, URL::class.java,
+        var unHook: XC_MethodHook.Unhook? = null
+        unHook = XposedHelpers.findAndHookConstructor(HttpURLConnection::class.java, URL::class.java,
             object : XC_MethodHook() {
-                var httpImplHooked = false
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    if (httpImplHooked) return
-                    httpImplHooked = true
                     hookHttpImpl(param.thisObject::class.java, joyoseProfileRuleHolder)
+                    unHook?.unhook() // hook once
                 }
             })
         XposedBridge.log("[${LOG_TAG}] process hooked: ${lpparam.processName}")
@@ -102,7 +102,7 @@ object JoyoseHook {
      * Not sure what it does exactly, but "dynamic_fps" is known to be used to limit game FPS
      */
     private fun hackProfile(profileResp: String, profileRule: JoyoseProfileRule): String {
-        XposedBridge.log("[$LOG_TAG] cloud profile: ${profileResp.length} bytes, rule: ${profileRule.value}")
+        XposedBridge.log("[$LOG_TAG] cloud profile length: ${profileResp.length}, rule: ${profileRule.value}")
         if (profileRule == JoyoseProfileRule.BLOCK) {
             XposedBridge.log("[$LOG_TAG] cloud profile blocked")
             return ""
