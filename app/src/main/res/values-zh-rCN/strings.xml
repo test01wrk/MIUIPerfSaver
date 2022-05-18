@@ -48,5 +48,6 @@
     <string name="joyose_open_local_settings_desc">"（需 root 权限）$ %1$s"</string>
     <string name="joyose_profile_process_rule">云控规则处理方式</string>
     <string name="open">打开</string>
+    <string name="show_launcher_icon">显示桌面图标</string>
 
 </resources>
