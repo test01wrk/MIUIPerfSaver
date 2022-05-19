@@ -40,12 +40,7 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
-          apk_path=""
-          if [ -f "./app/build/intermediates/apk/release/app-release.apk" ]; then
-            apk_path=$(readlink -f ./app/build/intermediates/apk/release/app-release.apk)
-          elif [ -f "./app/build/outputs/apk/release/app-release.apk" ]; then
-            apk_path=$(readlink -f ./app/build/outputs/apk/release/app-release.apk)
-          fi
+          apk_path=$(ls ./app/build/{outputs,intermediates}/apk/release/app-release.apk 2>/dev/null | xargs readlink -f)
           ls -l "$apk_path"
           echo "::set-output name=apk_path::$apk_path"
           echo "::set-output name=apk_name::$(basename $REPOSITORY)"
