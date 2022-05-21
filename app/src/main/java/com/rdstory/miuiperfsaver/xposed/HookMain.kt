@@ -13,6 +13,7 @@ class HookMain : IXposedHookLoadPackage {
         try {
             JoyoseHook.initHook(lpparam)
             PowerKeeperHook.initHook(lpparam)
+            PhoneInfoHook.initHook(lpparam)
         } catch (e: Throwable) {
             XposedBridge.log("[${LOG_TAG}] failed to hook process: ${lpparam.processName}. ${e.message}")
         }
