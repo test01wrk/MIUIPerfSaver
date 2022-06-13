@@ -14,7 +14,7 @@ fun <T> Any.getObjectField(filedName: String): T? {
     }
 }
 
-fun <T> Any.callMethod(methodName: String, vararg args: Any): T? {
+fun <T> Any.callMethod(methodName: String, vararg args: Any?): T? {
     return try {
         @Suppress("UNCHECKED_CAST")
         XposedHelpers.callMethod(this, methodName, *args) as? T

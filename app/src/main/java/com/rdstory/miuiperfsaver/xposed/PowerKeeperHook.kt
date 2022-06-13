@@ -1,10 +1,12 @@
 package com.rdstory.miuiperfsaver.xposed
 
 import android.content.Context
+import android.os.Looper
 import android.util.ArraySet
 import android.util.Log
 import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.Constants
+import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -19,6 +21,20 @@ object PowerKeeperHook {
         if (MIUI_POWER_KEEPER != lpparam.packageName) return
         val classDisplayFrameSetting =
             XposedHelpers.findClass(CLASS_DISPLAYFRAMESETTING, lpparam.classLoader)
+        XposedHelpers.findAndHookConstructor(
+            classDisplayFrameSetting,
+            Context::class.java, Looper::class.java,
+            object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val context = param.args[0] as Context
+                    Log.i(LOG_TAG, "powerkeeper DisplayFrameSetting created: ${lpparam.processName}")
+                    DCFPSCompat.init(context, param.thisObject, object : DCFPSCompat.Callback {
+                        override fun setFpsLimit(fpsLimit: Int?) {
+                            FPSSaver.globalFpsLimit = fpsLimit
+                        }
+                    })
+                }
+            })
         // primary hook: onForegroundChanged
         // exclude selected package name
         XposedHelpers.findAndHookMethod(
@@ -28,6 +44,7 @@ object PowerKeeperHook {
             object : XC_MethodHook() {
                 private var cleanup: (() -> Unit)? = null
                 override fun beforeHookedMethod(param: MethodHookParam) {
+                    Log.i(LOG_TAG, "onForegroundChanged: ${param.args[0]}")
                     FPSSaver.ensureInit(param.thisObject)
                     cleanup = FPSSaver.excludeIfMatch(param.args[0])
                 }
@@ -46,14 +63,9 @@ object PowerKeeperHook {
             Int::class.java,
             object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
-                    val pkg = param.args[0] as String
-                    val fps = param.args[1] as Int
-                    val cookie = param.args[2] as Int
                     FPSSaver.ensureInit(param.thisObject)
-                    FPSSaver.getTargetFPS(pkg, fps, cookie)?.let {
-                        param.args[1] = it
-                        param.args[2] = FPSSaver.excludeCookie // avoid getting ignored
-                    }
+                    Log.i(LOG_TAG, "setScreenEffect: args=${param.args.toList()}, overrideFps=${FPSSaver.globalFpsLimit}")
+                    FPSSaver.getTargetFPS(param.args)
                 }
             }
         )
@@ -63,60 +75,62 @@ object PowerKeeperHook {
     private object FPSSaver {
         private var initialized = false
         private val savedApps = mutableMapOf<String, Int>()
-        private var supportFps: IntArray? = null
-        var excludeCookie = 247
-            private set
+        private var supportFps: Set<Int>? = null
         private var hookedExcludeAppSet: ArraySet<String>? = null
+        var globalFpsLimit: Int? = null
 
         fun ensureInit(thisObject: Any) {
             if (initialized) {
                 return
             }
             initialized = true
-            supportFps = thisObject.callMethod("getSupportFps") ?: return
+            supportFps = thisObject.callMethod<IntArray?>("getSupportFps")?.let {
+                it.sortDescending()
+                it.toSet()
+            } ?: return
             val context: Context = thisObject.getObjectField("mContext") ?: return
             hookedExcludeAppSet = thisObject.getObjectField("mExcludeApps")
-            thisObject.getObjectField<Int>("COOKIE_EXCLUDE")?.let { excludeCookie = it }
-            ConfigProvider.observeSavedAppChange(context) {
-                ConfigProvider.getSavedAppConfig(context)?.let {
-                    XposedBridge.log("[$LOG_TAG] config updated. " +
-                            "global: ${it[Constants.FAKE_PKG_DEFAULT_FPS]}, " +
-                            "apps: ${savedApps.size} -> ${it.size}")
-                    savedApps.clear()
-                    savedApps.putAll(it)
-                    thisObject.getObjectField<Any>("mCurrentFgInfo")?.let { fg ->
-                        thisObject.callMethod<Unit>("onForegroundChanged", fg)
-                    }
+            val updateConfig = fun() {
+                val pkgFpsMap = ConfigProvider.getSavedAppConfig(context) ?: emptyMap()
+                XposedBridge.log("[$LOG_TAG] config updated. " +
+                        "supportFps: $supportFps, " +
+                        "global: ${pkgFpsMap[Constants.FAKE_PKG_DEFAULT_FPS]}, " +
+                        "fpsMap: ${pkgFpsMap.size}")
+                savedApps.clear()
+                savedApps.putAll(pkgFpsMap)
+                thisObject.getObjectField<Any>("mCurrentFgInfo")?.let { fg ->
+                    thisObject.callMethod<Unit>("onForegroundChanged", fg)
                 }
             }
-            ConfigProvider.getSavedAppConfig(context)?.let { savedApps.putAll(it) }
-            XposedBridge.log("[$LOG_TAG] initialized. supportFps: ${supportFps?.toList()}, " +
-                    "global: ${savedApps[Constants.FAKE_PKG_DEFAULT_FPS]}, " +
-                    "apps: ${savedApps.size}, excludes: ${hookedExcludeAppSet?.size}")
+            ConfigProvider.observeSavedAppChange(context, updateConfig)
+            updateConfig()
         }
 
-        fun getTargetFPS(pkg: String, fps: Int, cookie: Int): Int? {
+        fun getTargetFPS(outPkgFpsCookie: Array<Any>) {
+            val fpsLimit = globalFpsLimit ?: supportFps?.firstOrNull() ?: Int.MAX_VALUE
+            val pkg = outPkgFpsCookie[0] as String
+            val fps = outPkgFpsCookie[1] as Int
+            val cookie = outPkgFpsCookie[2] as Int
             val pkgFps = (savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS])?.takeIf {
-                (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
-            } ?: return null
+                    (fps != it || cookie != FPS_COOKIE_EXCLUDE) && supportFps?.contains(it) == true
+                } ?: fps.takeIf { it > fpsLimit } ?: return
+            outPkgFpsCookie[1] = pkgFps.coerceAtMost(fpsLimit)
+            outPkgFpsCookie[2] = FPS_COOKIE_EXCLUDE
             if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
-                var changed = ""
-                changed += if (fps != pkgFps) "[fps: $fps -> $pkgFps]" else "[fps: $fps]"
-                changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
-                XposedBridge.log("[$LOG_TAG] $changed perf saved: $pkg")
+                XposedBridge.log("[$LOG_TAG] fps: $fps, limit: $fpsLimit, out: ${outPkgFpsCookie.toList()}")
             }
-            return pkgFps
         }
 
         fun excludeIfMatch(foregroundInfo: Any?): (() -> Unit)? {
             val hookedAppSet = hookedExcludeAppSet ?: return null
             foregroundInfo?.getObjectField<String>("mForegroundPackageName")
                 ?.takeIf { pkg ->
-                    (savedApps.contains(pkg) || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
+                    (globalFpsLimit != null || savedApps.contains(pkg)
+                            || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
                             && hookedAppSet.add(pkg)
                 }?.let { pkg ->
                     if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
-                        XposedBridge.log("[$LOG_TAG] [excluded] perf saved: $pkg")
+                        XposedBridge.log("[$LOG_TAG] force exclude pkg: $pkg")
                     }
                     return { hookedAppSet.remove(pkg) }
                 }

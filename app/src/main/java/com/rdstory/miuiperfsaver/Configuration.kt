@@ -18,7 +18,7 @@ object Configuration {
 
     fun init() {
         val context = MainApplication.application
-        Utils.getSupportFps(context)?.let { supportedFPSBackend.addAll(it) }
+        supportedFPSBackend.addAll(Utils.getSupportFps(context))
         sharedPreferences =
             context.getSharedPreferences(SETTINGS_SP_KEY, Context.MODE_PRIVATE)
         joyoseProfileRule = sharedPreferences.getString(PREF_KEY_JOYOSE_PROFILE_RULE, null)
