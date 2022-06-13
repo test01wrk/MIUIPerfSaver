@@ -4,12 +4,13 @@ import android.content.Context
 import android.hardware.display.DisplayManager
 
 object Utils {
-    fun getSupportFps(context: Context): List<Int>? {
+    fun getSupportFps(context: Context): List<Int> {
         return (context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager).getDisplay(0)
             .supportedModes?.mapTo(mutableSetOf()) { it.refreshRate.toInt() }?.sorted()?.reversed()
+            ?: listOf(60)
     }
 
-    fun getMaxFPS(context: Context): Int? {
-        return getSupportFps(context)?.getOrNull(0)
+    fun getMaxFPS(context: Context): Int {
+        return getSupportFps(context)[0]
     }
 }

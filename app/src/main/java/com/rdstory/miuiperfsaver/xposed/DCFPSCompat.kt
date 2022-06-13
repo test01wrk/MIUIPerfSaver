@@ -17,26 +17,28 @@ object DCFPSCompat {
 
     interface Callback {
         fun setFpsLimit(fpsLimit: Int)
-        fun setFps(fps: Int)
-        fun updateCurrentFps()
+        fun setFps(fps: Int): Boolean
+        fun updateCurrentFps(): Boolean
     }
 
     fun init(context: Context, callback: Callback) {
         if (Build.DEVICE != DEVICE_XIAOMI_12X) {
             return // Xiaomi 12x, DC backlight not compatible with 120Hz, limit to 90Hz
         }
-        val mainHandler = Handler(Looper.getMainLooper())
+        val updateHandler = Handler(Looper.getMainLooper())
         var shouldLimitFps: Boolean? = null
         fun updateFpsLimit() {
             Log.i(LOG_TAG, "updateFpsLimit shouldLimitFps: $shouldLimitFps")
+            updateHandler.removeCallbacksAndMessages(null)
             if (shouldLimitFps == true) {
                 callback.setFpsLimit(60)
-                callback.setFps(60)
-                mainHandler.postDelayed({
+                callback.updateCurrentFps()
+                updateHandler.postDelayed({
                     callback.setFpsLimit(90)
-                    callback.setFps(90)
-                    callback.updateCurrentFps()
-                }, 300)
+                    if (!callback.updateCurrentFps()) {
+                        updateHandler.postDelayed({ updateFpsLimit() }, 500)
+                    }
+                }, 500)
             } else if (shouldLimitFps == false) {
                 callback.setFpsLimit(Int.MAX_VALUE)
                 callback.updateCurrentFps()
@@ -53,16 +55,17 @@ object DCFPSCompat {
             }
         }
         checkShouldLimitFps()
+        val observerHandler = Handler(Looper.getMainLooper())
         val dcURI = Settings.System.getUriFor("dc_back_light")
         context.contentResolver.registerContentObserver(dcURI, false,
-            object : ContentObserver(mainHandler) {
+            object : ContentObserver(observerHandler) {
                 override fun onChange(selfChange: Boolean) {
                     checkShouldLimitFps()
                 }
             })
         val brightnessURI = Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS)
         context.contentResolver.registerContentObserver(brightnessURI, false,
-            object : ContentObserver(mainHandler) {
+            object : ContentObserver(observerHandler) {
                 override fun onChange(selfChange: Boolean) {
                     checkShouldLimitFps()
                 }

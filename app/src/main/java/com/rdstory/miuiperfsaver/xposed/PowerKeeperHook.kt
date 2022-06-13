@@ -33,24 +33,42 @@ object PowerKeeperHook {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val context = param.args[0] as Context
                     Log.i(LOG_TAG, "powerkeeper DisplayFrameSetting created: ${lpparam.processName}")
+                    val setMethodInternalIIS = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
+                        "setScreenEffectInternal",
+                        Int::class.java, Int::class.java, String::class.java)
+                    val setMethodInternalII = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
+                        "setScreenEffectInternal",
+                        Int::class.java, Int::class.java)
+                    val setMethodII = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
+                        "setScreenEffect",
+                        Int::class.java, Int::class.java)
                     DCFPSCompat.init(context, object : DCFPSCompat.Callback {
-                        override fun setFps(fps: Int) {
-                            try {
-                                param.thisObject.callMethod<Unit>("setScreenEffectInternal", fps, 244, "")
-                            } catch (e: Throwable) {
-                                try {
-                                    param.thisObject.callMethod<Unit>("setScreenEffectInternal", fps, 244)
-                                } catch (t: Throwable) {
-                                    param.thisObject.callMethod<Unit>("setScreenEffect", fps, 244)
+                        override fun setFps(fps: Int): Boolean {
+                            val curCookie = param.thisObject.getObjectField<Int>("mCurrentCookie")
+                            val cookie = if (curCookie == 247) 244 else 247
+                            if (setMethodInternalIIS != null) {
+                                param.thisObject.getObjectField<Any>("mCurrentFgPkg")?.let {
+                                    setMethodInternalIIS.invoke(param.thisObject, fps, cookie, it)
+                                    return true
                                 }
+                                return false
                             }
+                            try {
+                                (setMethodInternalII ?: setMethodII)!!.invoke(fps, cookie)
+                                return true
+                            } catch (ignore: Throwable) { }
+                            return false
                         }
                         override fun setFpsLimit(fpsLimit: Int) {
                             FPSSaver.tempFpsLimit = fpsLimit
                         }
-                        override fun updateCurrentFps() {
-                            val mCurrentFgInfo = param.thisObject.getObjectField<Any>("mCurrentFgInfo")
-                            param.thisObject.callMethod<Unit>("onForegroundChanged", mCurrentFgInfo)
+                        override fun updateCurrentFps(): Boolean {
+                            param.thisObject.getObjectField<Any>("mCurrentFgInfo")?.let {
+                                param.thisObject.callMethod<Unit>("onForegroundChanged", it)
+                            }
+                            param.thisObject.getObjectField<Int>("mCurrentFps")?.let {
+                                return this.setFps(it)
+                            } ?: return false
                         }
                     })
                 }
@@ -70,16 +88,6 @@ object PowerKeeperHook {
                 }
                 override fun afterHookedMethod(param: MethodHookParam) {
                     cleanup?.invoke()
-                }
-            }
-        )
-        XposedHelpers.findAndHookMethod(
-            classDisplayFrameSetting,
-            "notifyFGChange",
-            XposedHelpers.findClass("miui.process.ForegroundInfo", lpparam.classLoader),
-            object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    Log.i(LOG_TAG, "notifyFGChange: ${param.args[0]}")
                 }
             }
         )
