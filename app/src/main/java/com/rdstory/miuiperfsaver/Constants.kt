@@ -21,10 +21,12 @@ object Constants {
     const val JOYOSE_PROFILE_RULE_BLOCK_ALL = "block_all"
     const val JOYOSE_PROFILE_RULE_RM_APP_LIST = "remove_app_list"
     const val JOYOSE_PROFILE_RULE_RM_APP_DFPS = "remove_app_dynamic_fps"
+    const val JOYOSE_PROFILE_RULE_KEEP_ALL = "keep_all"
 }
 
 enum class JoyoseProfileRule(val value: String) {
     BLOCK_ALL(Constants.JOYOSE_PROFILE_RULE_BLOCK_ALL),
     RM_APP_LIST(Constants.JOYOSE_PROFILE_RULE_RM_APP_LIST),
-    RM_APP_DFPS(Constants.JOYOSE_PROFILE_RULE_RM_APP_DFPS)
+    RM_APP_DFPS(Constants.JOYOSE_PROFILE_RULE_RM_APP_DFPS),
+    KEEP_ALL(Constants.JOYOSE_PROFILE_RULE_KEEP_ALL)
 }

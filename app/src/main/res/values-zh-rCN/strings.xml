@@ -49,5 +49,6 @@
     <string name="joyose_profile_process_rule">云控规则处理方式</string>
     <string name="open">打开</string>
     <string name="show_launcher_icon">显示桌面图标</string>
+    <string name="joyose_profile_process_rule_keep_all">保留全部规则</string>
 
 </resources>

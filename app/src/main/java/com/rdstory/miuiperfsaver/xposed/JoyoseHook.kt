@@ -103,6 +103,10 @@ object JoyoseHook {
      */
     private fun hackProfile(profileResp: String, profileRule: JoyoseProfileRule): String {
         XposedBridge.log("[$LOG_TAG] cloud profile length: ${profileResp.length}, rule: ${profileRule.value}")
+        if (profileRule == JoyoseProfileRule.KEEP_ALL) {
+            XposedBridge.log("[$LOG_TAG] cloud profile kept")
+            return profileResp
+        }
         if (profileRule == JoyoseProfileRule.BLOCK_ALL) {
             XposedBridge.log("[$LOG_TAG] cloud profile blocked")
             return ""
