@@ -22,6 +22,8 @@ object Constants {
     const val JOYOSE_PROFILE_RULE_RM_APP_LIST = "remove_app_list"
     const val JOYOSE_PROFILE_RULE_RM_APP_DFPS = "remove_app_dynamic_fps"
     const val JOYOSE_PROFILE_RULE_KEEP_ALL = "keep_all"
+
+    const val DEVICE_XIAOMI_12X = "psyche"
 }
 
 enum class JoyoseProfileRule(val value: String) {
