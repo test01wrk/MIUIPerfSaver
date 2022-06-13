@@ -84,6 +84,9 @@ object PowerKeeperHook {
                             "apps: ${savedApps.size} -> ${it.size}")
                     savedApps.clear()
                     savedApps.putAll(it)
+                    thisObject.getObjectField<Any>("mCurrentFgInfo")?.let { fg ->
+                        thisObject.callMethod<Unit>("onForegroundChanged", fg)
+                    }
                 }
             }
             ConfigProvider.getSavedAppConfig(context)?.let { savedApps.putAll(it) }
