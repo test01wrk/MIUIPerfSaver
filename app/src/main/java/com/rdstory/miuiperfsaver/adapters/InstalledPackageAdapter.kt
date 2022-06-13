@@ -41,14 +41,14 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     private val mFilteredPackages: MutableList<PackageInfoCache> = ArrayList()
     private val mFixedHeaders: MutableList<FakePackage> = ArrayList()
     private var mFilterQuery = ""
+    private val defaultFpsItem = FakePackage(FakePackageType.DEFAULT_FPS).apply {
+        icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
+        title = context.getString(R.string.global_default_fps)
+        description = context.getString(R.string.global_default_fps_desc)
+    }
 
     init {
         setHasStableIds(true)
-        mFixedHeaders.add(FakePackage(FakePackageType.DEFAULT_FPS).apply {
-            icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
-            title = context.getString(R.string.global_default_fps)
-            description = context.getString(R.string.global_default_fps_desc)
-        })
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
@@ -208,6 +208,10 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         }
         mFilteredPackages.clear()
         mFilteredPackages.addAll(filtered)
+        mFixedHeaders.clear()
+        if (TextUtils.isEmpty(mFilterQuery)) {
+            mFixedHeaders.add(defaultFpsItem)
+        }
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
