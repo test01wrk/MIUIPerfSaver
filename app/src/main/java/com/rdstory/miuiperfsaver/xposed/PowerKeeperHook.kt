@@ -5,6 +5,7 @@ import android.os.Looper
 import android.util.ArraySet
 import android.util.Log
 import com.rdstory.miuiperfsaver.ConfigProvider
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.APP_LIST_URI
 import com.rdstory.miuiperfsaver.Constants
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
@@ -102,7 +103,7 @@ object PowerKeeperHook {
                     thisObject.callMethod<Unit>("onForegroundChanged", fg)
                 }
             }
-            ConfigProvider.observeSavedAppChange(context, updateConfig)
+            ConfigProvider.observeChange(context, APP_LIST_URI, updateConfig)
             updateConfig()
         }
 

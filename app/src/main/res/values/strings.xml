@@ -52,4 +52,8 @@
     <string name="joyose_profile_process_rule_desc">Block or modify cloud strategy</string>
     <string name="open">Start</string>
     <string name="show_launcher_icon">Show launcher icon</string>
+    <string name="dc_compat_item_title">DC FPS Compat</string>
+    <string name="dc_compat_item_desc">Set  DC backlight brightness threshold and the refresh rate limit. Some device can\'t enable DC if running at high screen refresh rate, limit refresh rate here</string>
+    <string name="dc_fps_no_limit">No Limit</string>
+    <string name="dc_brightness_value">DC Brightness:  %d</string>
 </resources>

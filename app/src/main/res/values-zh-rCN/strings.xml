@@ -50,5 +50,9 @@
     <string name="open">打开</string>
     <string name="show_launcher_icon">显示桌面图标</string>
     <string name="joyose_profile_process_rule_keep_all">保留全部规则</string>
+    <string name="dc_compat_item_title">DC FPS 兼容</string>
+    <string name="dc_compat_item_desc">设置 DC 调光生效时的亮度阈值和刷新率限制。部分设备高刷时 DC 不生效，可以在这里限制 DC 刷新率</string>
+    <string name="dc_fps_no_limit">不限制</string>
+    <string name="dc_brightness_value">DC 亮度: %d</string>
 
 </resources>
