@@ -27,7 +27,7 @@
         android:layout_marginHorizontal="4dp"
         android:textAppearance="?textAppearanceListItem"
         app:layout_constraintBottom_toTopOf="@+id/package_name"
-        app:layout_constraintEnd_toStartOf="@+id/fps_spinner"
+        app:layout_constraintEnd_toStartOf="@+id/barrier_right_action"
         app:layout_constraintStart_toEndOf="@+id/icon"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed"
@@ -40,7 +40,7 @@
         android:layout_marginHorizontal="4dp"
         android:textAppearance="?textAppearanceListItemSecondary"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/fps_spinner"
+        app:layout_constraintEnd_toStartOf="@+id/barrier_right_action"
         app:layout_constraintStart_toEndOf="@+id/icon"
         app:layout_constraintTop_toBottomOf="@+id/application_label"
         app:layout_constraintVertical_chainStyle="packed"
@@ -49,10 +49,40 @@
     <androidx.appcompat.widget.AppCompatSpinner
         android:id="@+id/fps_spinner"
         android:layout_width="wrap_content"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:padding="4dp"
+        app:layout_constraintBottom_toTopOf="@+id/barrier_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_min="40dp"
+        app:layout_constraintStart_toStartOf="@+id/barrier_right_action"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Button"
+        android:textSize="12sp"
+        android:textAllCaps="false"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/barrier_right_action"
+        tools:visibility="visible" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrier_right_action"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="left"
+        app:constraint_referenced_ids="fps_spinner,button" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/barrier_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="top"
+        app:constraint_referenced_ids="button" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

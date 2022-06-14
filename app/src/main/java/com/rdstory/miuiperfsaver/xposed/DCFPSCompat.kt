@@ -9,9 +9,14 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import com.rdstory.miuiperfsaver.ConfigProvider
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.COLUMN_DC_BRIGHTNESS
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.COLUMN_DC_FPS_LIMIT
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_DEFAULT
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import java.lang.reflect.Method
 
@@ -28,6 +33,8 @@ object DCFPSCompat {
     private var shouldLimitFps: Boolean? = null
     private lateinit var callback: Callback
     private lateinit var frameSettingObject: Any
+    private var dcFpsLimit = 0
+    private var dcBrightness = 0
 
     fun init(context: Context, frameSettingObject: Any, callback: Callback) {
         if (!isDcFpsInCompat(context)) {
@@ -35,8 +42,18 @@ object DCFPSCompat {
         }
         this.frameSettingObject = frameSettingObject
         this.callback = callback
+        val updateConfig = fun() {
+            val config = ConfigProvider.getDCCompatConfig(context) ?: emptyMap()
+            XposedBridge.log("[$LOG_TAG] dc compat config updated. $config")
+            val fpsLimit = config[COLUMN_DC_FPS_LIMIT] ?: 0
+            val brightness = config[COLUMN_DC_BRIGHTNESS] ?: 0
+            dcFpsLimit = fpsLimit
+            dcBrightness = brightness
+            checkShouldLimitFps(context, true)
+        }
+        ConfigProvider.observeChange(context, DC_COMPAT_CONFIG_URI, updateConfig)
         initFrameSettingMethods()
-        checkShouldLimitFps(context)
+        updateConfig()
         startObserving(context)
     }
 
@@ -102,25 +119,29 @@ object DCFPSCompat {
         if (shouldLimitFps == true) {
             callback.setFpsLimit(60)
             updateCurrentFps()
-            updateHandler.postDelayed({
-                callback.setFpsLimit(90)
-                if (!updateCurrentFps() && retry > 0) {
-                    updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, 500)
-                }
-            }, 500)
+            if (dcFpsLimit > 60) {
+                updateHandler.postDelayed({
+                    callback.setFpsLimit(dcFpsLimit)
+                    if (!updateCurrentFps() && retry > 0) {
+                        updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, 500)
+                    }
+                }, 500)
+            }
         } else if (shouldLimitFps == false) {
             callback.setFpsLimit(null)
             updateCurrentFps()
         }
     }
 
-    private fun checkShouldLimitFps(context: Context) {
+    private fun checkShouldLimitFps(context: Context, forceUpdate: Boolean = false) {
         val dcEnabled = Settings.System.getInt(context.contentResolver, "dc_back_light", 0) == 1
         val brightness = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
-        Log.i(LOG_TAG, "settings changed. dcEnabled: $dcEnabled, brightness: $brightness")
+        Log.i(LOG_TAG, "checkShouldLimitFps. dcEnabled: $dcEnabled," +
+                " brightness: $brightness, dcBrightness=$dcBrightness, " +
+                "dcFpsLimit=$dcFpsLimit, forceUpdate=$forceUpdate")
         val wasLimit = shouldLimitFps
-        shouldLimitFps = dcEnabled && brightness < 400
-        if (wasLimit != shouldLimitFps) {
+        shouldLimitFps = dcEnabled && brightness < dcBrightness && dcFpsLimit > 0
+        if (wasLimit != shouldLimitFps || forceUpdate) {
             updateFpsLimit()
         }
     }
