@@ -8,6 +8,7 @@ import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.APP_LIST_URI
 import com.rdstory.miuiperfsaver.Constants
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
+import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -28,7 +29,6 @@ object PowerKeeperHook {
             object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val context = param.args[0] as Context
-                    Log.i(LOG_TAG, "powerkeeper DisplayFrameSetting created: ${lpparam.processName}")
                     DCFPSCompat.init(context, param.thisObject, object : DCFPSCompat.Callback {
                         override fun setFpsLimit(fpsLimit: Int?) {
                             FPSSaver.globalFpsLimit = fpsLimit
@@ -45,7 +45,6 @@ object PowerKeeperHook {
             object : XC_MethodHook() {
                 private var cleanup: (() -> Unit)? = null
                 override fun beforeHookedMethod(param: MethodHookParam) {
-                    Log.i(LOG_TAG, "onForegroundChanged: ${param.args[0]}")
                     FPSSaver.ensureInit(param.thisObject)
                     cleanup = FPSSaver.excludeIfMatch(param.args[0])
                 }
@@ -65,7 +64,6 @@ object PowerKeeperHook {
             object : XC_MethodHook() {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     FPSSaver.ensureInit(param.thisObject)
-                    Log.i(LOG_TAG, "setScreenEffect: args=${param.args.toList()}, overrideFps=${FPSSaver.globalFpsLimit}")
                     FPSSaver.getTargetFPS(param.args)
                 }
             }
@@ -117,7 +115,7 @@ object PowerKeeperHook {
                 } ?: fps.takeIf { it > fpsLimit } ?: return
             outPkgFpsCookie[1] = pkgFps.coerceAtMost(fpsLimit)
             outPkgFpsCookie[2] = FPS_COOKIE_EXCLUDE
-            if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
+            if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
                 XposedBridge.log("[$LOG_TAG] fps: $fps, limit: $fpsLimit, out: ${outPkgFpsCookie.toList()}")
             }
         }
@@ -130,7 +128,7 @@ object PowerKeeperHook {
                             || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
                             && hookedAppSet.add(pkg)
                 }?.let { pkg ->
-                    if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
+                    if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
                         XposedBridge.log("[$LOG_TAG] force exclude pkg: $pkg")
                     }
                     return { hookedAppSet.remove(pkg) }

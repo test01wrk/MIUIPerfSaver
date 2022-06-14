@@ -15,6 +15,7 @@ import com.rdstory.miuiperfsaver.ConfigProvider.Companion.COLUMN_DC_FPS_LIMIT
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_DEFAULT
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
+import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -107,14 +108,16 @@ object DCFPSCompat {
             })
         context.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                Log.i(LOG_TAG, "restore dc, user present set user_refresh_rate. shouldLimitFps=$shouldLimitFps")
                 updateFpsLimit()
             }
         }, IntentFilter(Intent.ACTION_USER_PRESENT))
     }
 
     private fun updateFpsLimit(retry: Int = 10) {
-        Log.i(LOG_TAG, "updateFpsLimit shouldLimitFps: $shouldLimitFps")
+        if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
+            XposedBridge.log("[$LOG_TAG] updateFpsLimit. " +
+                    "shouldLimit=$shouldLimitFps, limit=$dcFpsLimit")
+        }
         updateHandler.removeCallbacksAndMessages(null)
         if (shouldLimitFps == true) {
             callback.setFpsLimit(60)
@@ -136,13 +139,16 @@ object DCFPSCompat {
     private fun checkShouldLimitFps(context: Context, forceUpdate: Boolean = false) {
         val dcEnabled = Settings.System.getInt(context.contentResolver, "dc_back_light", 0) == 1
         val brightness = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
-        Log.i(LOG_TAG, "checkShouldLimitFps. dcEnabled: $dcEnabled," +
-                " brightness: $brightness, dcBrightness=$dcBrightness, " +
-                "dcFpsLimit=$dcFpsLimit, forceUpdate=$forceUpdate")
         val wasLimit = shouldLimitFps
         shouldLimitFps = dcEnabled && brightness < dcBrightness && dcFpsLimit > 0
         if (wasLimit != shouldLimitFps || forceUpdate) {
             updateFpsLimit()
+        }
+        if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
+            XposedBridge.log("[$LOG_TAG] checkShouldLimitFps. dcEnabled=$dcEnabled, " +
+                    "brightness=$brightness, dcBrightness=$dcBrightness, " +
+                    "dcFpsLimit=$dcFpsLimit, forceUpdate=$forceUpdate, " +
+                    "wasLimit=$wasLimit, shouldLimitFps=$shouldLimitFps")
         }
     }
 
