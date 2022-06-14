@@ -1,6 +1,9 @@
 package com.rdstory.miuiperfsaver
 
+import android.util.Log
+
 object Constants {
+    val LOG_LEVEL = if (BuildConfig.DEBUG) Log.INFO else Log.DEBUG
     const val LOG_TAG = "MIUIPerfSaver"
 
     const val SETTINGS_SP_KEY = "settings"
