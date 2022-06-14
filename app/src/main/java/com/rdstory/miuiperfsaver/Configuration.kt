@@ -2,6 +2,11 @@ package com.rdstory.miuiperfsaver
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.APP_LIST_URI
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.JOYOSE_CONFIG_URI
+import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_BRIGHTNESS
+import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_FPS_LIMIT
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_JOYOSE_PROFILE_RULE
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
@@ -15,6 +20,10 @@ object Configuration {
         get() = supportedFPSBackend
     var joyoseProfileRule: String = JoyoseProfileRule.BLOCK_ALL.value
         private set
+    var dcFpsLimit = 0
+        private set
+    var dcBrightness = 0
+        private set
 
     fun init() {
         val context = MainApplication.application
@@ -24,6 +33,9 @@ object Configuration {
         joyoseProfileRule = sharedPreferences.getString(PREF_KEY_JOYOSE_PROFILE_RULE, null)
             ?.takeIf { r -> JoyoseProfileRule.values().indexOfFirst { it.value == r } >= 0 }
             ?: JoyoseProfileRule.BLOCK_ALL.value
+        dcFpsLimit = sharedPreferences.getInt(PREF_KEY_DC_FPS_LIMIT, 0)
+            .takeIf { supportedFPS.contains(it) } ?: 0
+        dcBrightness = sharedPreferences.getInt(PREF_KEY_DC_BRIGHTNESS, 0)
         try {
             sharedPreferences.getStringSet(PREF_KEY_SAVED_APP_LIST, null)
         } catch (ignore: Exception) {
@@ -33,24 +45,23 @@ object Configuration {
             val fps = pkgAndFps.getOrNull(1)?.toInt() ?: supportedFPS.getOrNull(0)
             fps?.let { savedApps[pkgAndFps[0]] = it }
         }
-        ConfigProvider.notifyAppListChange(context)
-        ConfigProvider.notifyJoyoseConfigChange(context)
+        ConfigProvider.notifyChange(context)
     }
 
-    private fun save() {
+    private fun savePkgFpsMap() {
         val saveSet = savedApps.map { "${it.key}$SEPARATOR${it.value}" }.toSet()
         sharedPreferences.edit().putStringSet(PREF_KEY_SAVED_APP_LIST, saveSet).apply()
     }
 
     fun fpsIndex(packageName: String): Int {
-        return getFps(packageName)?.let { supportedFPS.indexOf(it) }?.takeIf { it >= 0 } ?: -1
+        return getPkgFps(packageName)?.let { supportedFPS.indexOf(it) }?.takeIf { it >= 0 } ?: -1
     }
 
-    fun getFps(packageName: String): Int? {
+    fun getPkgFps(packageName: String): Int? {
         return savedApps[packageName]
     }
 
-    fun setFps(packageName: String, fps: Int?) {
+    fun setPkgFps(packageName: String, fps: Int?) {
         var changed = false
         val oldFps = savedApps[packageName]
         if (fps != null && (oldFps == null || oldFps != fps)) {
@@ -61,16 +72,15 @@ object Configuration {
             changed = true
         }
         if (changed) {
-            save()
-            ConfigProvider.notifyAppListChange(MainApplication.application)
+            savePkgFpsMap()
+            ConfigProvider.notifyChange(MainApplication.application, APP_LIST_URI)
         }
     }
-
-    fun isPerfSaved(packageName: String): Boolean {
+    fun isPkgHasFps(packageName: String): Boolean {
         return savedApps.contains(packageName)
     }
 
-    fun getAll(): Map<String, Int> {
+    fun getPkgFpsMap(): Map<String, Int> {
         return savedApps
     }
 
@@ -78,7 +88,24 @@ object Configuration {
         if (rule.value != joyoseProfileRule) {
             joyoseProfileRule = rule.value
             sharedPreferences.edit().putString(PREF_KEY_JOYOSE_PROFILE_RULE, joyoseProfileRule).apply()
-            ConfigProvider.notifyJoyoseConfigChange(MainApplication.application)
+            ConfigProvider.notifyChange(MainApplication.application, JOYOSE_CONFIG_URI)
         }
     }
+
+    fun setDCFpsLimit(fps: Int?) {
+        if (dcFpsLimit != fps) {
+            dcFpsLimit = fps ?: 0
+            sharedPreferences.edit().putInt(PREF_KEY_DC_FPS_LIMIT, dcFpsLimit).apply()
+            ConfigProvider.notifyChange(MainApplication.application, DC_COMPAT_CONFIG_URI)
+        }
+    }
+
+    fun setDCBrightness(brightness: Int) {
+        if (dcBrightness != brightness) {
+            dcBrightness = brightness
+            sharedPreferences.edit().putInt(PREF_KEY_DC_BRIGHTNESS, dcBrightness).apply()
+            ConfigProvider.notifyChange(MainApplication.application, DC_COMPAT_CONFIG_URI)
+        }
+    }
+
 }

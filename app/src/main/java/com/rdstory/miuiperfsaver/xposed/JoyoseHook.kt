@@ -3,6 +3,7 @@ package com.rdstory.miuiperfsaver.xposed
 import android.app.Application
 import android.content.Context
 import com.rdstory.miuiperfsaver.ConfigProvider
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.JOYOSE_CONFIG_URI
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import com.rdstory.miuiperfsaver.JoyoseProfileRule
@@ -35,7 +36,7 @@ object JoyoseHook {
                             XposedBridge.log("[${LOG_TAG}] joyose profile rule updated: ${old.value} -> ${it.value}")
                         }
                     }
-                    ConfigProvider.observeJoyoseConfigChange(context, updateJoyoseRule)
+                    ConfigProvider.observeChange(context, JOYOSE_CONFIG_URI, updateJoyoseRule)
                     updateJoyoseRule()
                 }
             })
