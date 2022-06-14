@@ -20,12 +20,6 @@ object PowerKeeperHook {
         if (MIUI_POWER_KEEPER != lpparam.packageName) return
         val classDisplayFrameSetting =
             XposedHelpers.findClass(CLASS_DISPLAYFRAMESETTING, lpparam.classLoader)
-        val classFGInfo =
-            XposedHelpers.findClass("miui.process.ForegroundInfo", lpparam.classLoader)
-
-        val methods = classDisplayFrameSetting.declaredMethods.filter { it.name.contains("setScreenEffect") }
-        Log.i(LOG_TAG, "powerkeeper methods: ${methods}")
-
         XposedHelpers.findAndHookConstructor(
             classDisplayFrameSetting,
             Context::class.java, Looper::class.java,
@@ -33,42 +27,9 @@ object PowerKeeperHook {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     val context = param.args[0] as Context
                     Log.i(LOG_TAG, "powerkeeper DisplayFrameSetting created: ${lpparam.processName}")
-                    val setMethodInternalIIS = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
-                        "setScreenEffectInternal",
-                        Int::class.java, Int::class.java, String::class.java)
-                    val setMethodInternalII = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
-                        "setScreenEffectInternal",
-                        Int::class.java, Int::class.java)
-                    val setMethodII = XposedHelpers.findMethodExactIfExists(classDisplayFrameSetting,
-                        "setScreenEffect",
-                        Int::class.java, Int::class.java)
-                    DCFPSCompat.init(context, object : DCFPSCompat.Callback {
-                        override fun setFps(fps: Int): Boolean {
-                            val curCookie = param.thisObject.getObjectField<Int>("mCurrentCookie")
-                            val cookie = if (curCookie == 247) 244 else 247
-                            if (setMethodInternalIIS != null) {
-                                param.thisObject.getObjectField<Any>("mCurrentFgPkg")?.let {
-                                    setMethodInternalIIS.invoke(param.thisObject, fps, cookie, it)
-                                    return true
-                                }
-                                return false
-                            }
-                            try {
-                                (setMethodInternalII ?: setMethodII)!!.invoke(fps, cookie)
-                                return true
-                            } catch (ignore: Throwable) { }
-                            return false
-                        }
-                        override fun setFpsLimit(fpsLimit: Int) {
+                    DCFPSCompat.init(context, param.thisObject, object : DCFPSCompat.Callback {
+                        override fun setFpsLimit(fpsLimit: Int?) {
                             FPSSaver.tempFpsLimit = fpsLimit
-                        }
-                        override fun updateCurrentFps(): Boolean {
-                            param.thisObject.getObjectField<Any>("mCurrentFgInfo")?.let {
-                                param.thisObject.callMethod<Unit>("onForegroundChanged", it)
-                            }
-                            param.thisObject.getObjectField<Int>("mCurrentFps")?.let {
-                                return this.setFps(it)
-                            } ?: return false
                         }
                     })
                 }
@@ -78,7 +39,7 @@ object PowerKeeperHook {
         XposedHelpers.findAndHookMethod(
             classDisplayFrameSetting,
             "onForegroundChanged",
-            classFGInfo,
+            XposedHelpers.findClass("miui.process.ForegroundInfo", lpparam.classLoader),
             object : XC_MethodHook() {
                 private var cleanup: (() -> Unit)? = null
                 override fun beforeHookedMethod(param: MethodHookParam) {
@@ -125,7 +86,7 @@ object PowerKeeperHook {
         private var supportFps: IntArray? = null
         private var excludeCookie = 247
         private var hookedExcludeAppSet: ArraySet<String>? = null
-        var tempFpsLimit = Int.MAX_VALUE
+        var tempFpsLimit: Int? = null
 
         fun ensureInit(thisObject: Any) {
             if (initialized) {
@@ -157,7 +118,7 @@ object PowerKeeperHook {
         fun getTargetFPS(pkg: String, outFpsAndCookie: IntArray) {
             val fps = outFpsAndCookie[0]
             val cookie = outFpsAndCookie[1]
-            outFpsAndCookie[0] = fps.coerceAtMost(tempFpsLimit)
+            outFpsAndCookie[0] = fps.coerceAtMost(tempFpsLimit ?: Int.MAX_VALUE)
             val pkgFps = (savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS])?.takeIf {
                 (fps != it || cookie != excludeCookie) && supportFps?.contains(it) == true
             } ?: return
@@ -167,7 +128,7 @@ object PowerKeeperHook {
                 changed += if (cookie != excludeCookie) "[cookie: $cookie -> $excludeCookie]" else "[cookie: $cookie]"
                 XposedBridge.log("[$LOG_TAG] $changed perf saved: $pkg")
             }
-            outFpsAndCookie[0] = pkgFps.coerceAtMost(tempFpsLimit)
+            outFpsAndCookie[0] = pkgFps.coerceAtMost(tempFpsLimit ?: Int.MAX_VALUE)
             outFpsAndCookie[1] = excludeCookie // avoid getting ignored
         }
 
