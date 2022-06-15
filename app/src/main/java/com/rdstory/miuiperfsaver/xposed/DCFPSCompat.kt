@@ -27,11 +27,14 @@ object DCFPSCompat {
         fun setFpsLimit(fpsLimit: Int?)
     }
 
+    private const val ACTION_DELAY = 500L
+    private var displayFeatureMan: Any? = null
     private var setMethodInternalIIS: Method? = null
     private var setMethodInternalII: Method? = null
     private var setMethodII: Method? = null
     private val updateHandler = Handler(Looper.getMainLooper())
     private var shouldLimitFps: Boolean? = null
+    private var dcEnabled: Boolean? = null
     private lateinit var callback: Callback
     private lateinit var frameSettingObject: Any
     private var dcFpsLimit = 0
@@ -53,7 +56,7 @@ object DCFPSCompat {
             checkShouldLimitFps(context, true)
         }
         ConfigProvider.observeChange(context, DC_COMPAT_CONFIG_URI, updateConfig)
-        initFrameSettingMethods()
+        initReflections(context)
         updateConfig()
         startObserving(context)
     }
@@ -71,7 +74,11 @@ object DCFPSCompat {
         }
     }
 
-    private fun initFrameSettingMethods() {
+    private fun setHardwareDcEnabled(enable: Boolean) {
+        displayFeatureMan?.callMethod<Unit>("setScreenEffect", 20, if (enable) 1 else 0)
+    }
+
+    private fun initReflections(context: Context) {
         val classDisplayFrameSetting = frameSettingObject::class.java
         setMethodInternalIIS = XposedHelpers.findMethodExactIfExists(
             classDisplayFrameSetting,
@@ -88,6 +95,10 @@ object DCFPSCompat {
             "setScreenEffect",
             Int::class.java, Int::class.java
         )
+        displayFeatureMan = XposedHelpers.findClassIfExists(
+            "miui.hardware.display.DisplayFeatureManager",
+            context.classLoader
+        )?.callStaticMethod("getInstance")
     }
 
     private fun startObserving(context: Context) {
@@ -108,7 +119,7 @@ object DCFPSCompat {
             })
         context.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                updateFpsLimit()
+                observerHandler.postDelayed({ checkShouldLimitFps(context, true) }, 500)
             }
         }, IntentFilter(Intent.ACTION_USER_PRESENT))
     }
@@ -122,25 +133,29 @@ object DCFPSCompat {
         if (shouldLimitFps == true) {
             callback.setFpsLimit(60)
             updateCurrentFps()
+            setHardwareDcEnabled(true)
             if (dcFpsLimit > 60) {
                 updateHandler.postDelayed({
                     callback.setFpsLimit(dcFpsLimit)
                     if (!updateCurrentFps() && retry > 0) {
-                        updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, 500)
+                        updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
                     }
-                }, 500)
+                    setHardwareDcEnabled(true)
+                }, ACTION_DELAY)
             }
         } else if (shouldLimitFps == false) {
             callback.setFpsLimit(null)
             updateCurrentFps()
+            dcEnabled?.let { updateHandler.postDelayed({ setHardwareDcEnabled(it) }, ACTION_DELAY) }
         }
     }
 
     private fun checkShouldLimitFps(context: Context, forceUpdate: Boolean = false) {
         val dcEnabled = Settings.System.getInt(context.contentResolver, "dc_back_light", 0) == 1
         val brightness = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        this.dcEnabled = dcEnabled
         val wasLimit = shouldLimitFps
-        shouldLimitFps = dcEnabled && brightness < dcBrightness && dcFpsLimit > 0
+        shouldLimitFps = dcEnabled && brightness <= dcBrightness && dcFpsLimit > 0
         if (wasLimit != shouldLimitFps || forceUpdate) {
             updateFpsLimit()
         }
