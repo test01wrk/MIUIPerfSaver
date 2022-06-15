@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import com.rdstory.miuiperfsaver.ConfigProvider
@@ -20,6 +21,7 @@ import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import java.lang.reflect.Method
+import kotlin.math.abs
 
 object DCFPSCompat {
 
@@ -111,11 +113,25 @@ object DCFPSCompat {
                     checkShouldLimitFps(context)
                 }
             })
+
+        var prevBrightnessChange = SystemClock.elapsedRealtime()
+        var boundCount = 0
+        val brightnessChangeRunnable = Runnable {
+            boundCount = 0
+            checkShouldLimitFps(context)
+        }
         val brightnessURI = Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS)
         context.contentResolver.registerContentObserver(brightnessURI, false,
             object : ContentObserver(observerHandler) {
                 override fun onChange(selfChange: Boolean) {
-                    checkShouldLimitFps(context)
+                    val time = SystemClock.elapsedRealtime()
+                    observerHandler.removeCallbacks(brightnessChangeRunnable)
+                    if (abs(time - prevBrightnessChange) < 1000) {
+                        observerHandler.postDelayed(brightnessChangeRunnable, 1000L * ++boundCount)
+                    } else {
+                        brightnessChangeRunnable.run()
+                    }
+                    prevBrightnessChange = time
                 }
             })
         context.registerReceiver(object : BroadcastReceiver() {
