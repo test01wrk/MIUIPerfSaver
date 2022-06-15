@@ -39,6 +39,7 @@ object DCFPSCompat {
     private lateinit var frameSettingObject: Any
     private var dcFpsLimit = 0
     private var dcBrightness = 0
+    private var briFpsArray = arrayOf(intArrayOf(2047, 120), intArrayOf(200, 90,))
 
     fun init(context: Context, frameSettingObject: Any, callback: Callback) {
         if (!isDcFpsInCompat(context)) {
@@ -155,8 +156,17 @@ object DCFPSCompat {
         val brightness = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
         this.dcEnabled = dcEnabled
         val wasLimit = shouldLimitFps
+        val prevFpsLimit = dcFpsLimit
+        briFpsArray.sortedWith { a, b -> b[0] - a[0] }.forEach {
+            val bri = it[0]
+            val fps = it[1]
+            if (brightness <= bri) {
+                dcFpsLimit = fps
+                dcBrightness = bri
+            }
+        }
         shouldLimitFps = dcEnabled && brightness <= dcBrightness && dcFpsLimit > 0
-        if (wasLimit != shouldLimitFps || forceUpdate) {
+        if (wasLimit != shouldLimitFps || forceUpdate || prevFpsLimit != dcFpsLimit) {
             updateFpsLimit()
         }
         if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
