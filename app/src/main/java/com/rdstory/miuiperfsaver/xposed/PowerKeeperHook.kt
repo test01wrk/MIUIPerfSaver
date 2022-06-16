@@ -124,8 +124,7 @@ object PowerKeeperHook {
             val hookedAppSet = hookedExcludeAppSet ?: return null
             foregroundInfo?.getObjectField<String>("mForegroundPackageName")
                 ?.takeIf { pkg ->
-                    (globalFpsLimit != null || savedApps.contains(pkg)
-                            || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
+                    (savedApps.contains(pkg) || savedApps.contains(Constants.FAKE_PKG_DEFAULT_FPS))
                             && hookedAppSet.add(pkg)
                 }?.let { pkg ->
                     if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {

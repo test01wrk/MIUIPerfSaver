@@ -34,7 +34,7 @@ object DCFPSCompat {
     private var setMethodII: Method? = null
     private val updateHandler = Handler(Looper.getMainLooper())
     private var shouldLimitFps: Boolean? = null
-    private var dcEnabled: Boolean? = null
+    private var dcEnabled = false
     private lateinit var callback: Callback
     private lateinit var frameSettingObject: Any
     private var dcFpsLimit = 0
@@ -129,25 +129,18 @@ object DCFPSCompat {
             XposedBridge.log("[$LOG_TAG] updateFpsLimit. " +
                     "shouldLimit=$shouldLimitFps, limit=$dcFpsLimit")
         }
+        val shouldLimitFps = shouldLimitFps ?: return
         updateHandler.removeCallbacksAndMessages(null)
-        if (shouldLimitFps == true) {
-            callback.setFpsLimit(60)
-            updateCurrentFps()
-            setHardwareDcEnabled(true)
-            if (dcFpsLimit > 60) {
-                updateHandler.postDelayed({
-                    callback.setFpsLimit(dcFpsLimit)
-                    if (!updateCurrentFps() && retry > 0) {
-                        updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
-                    }
-                    setHardwareDcEnabled(true)
-                }, ACTION_DELAY)
+        callback.setFpsLimit(if (shouldLimitFps) 60 else null)
+        updateCurrentFps()
+        setHardwareDcEnabled(dcEnabled)
+        updateHandler.postDelayed({
+            callback.setFpsLimit(if (shouldLimitFps) dcFpsLimit else null)
+            if (!updateCurrentFps() && retry > 0) {
+                updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
             }
-        } else if (shouldLimitFps == false) {
-            callback.setFpsLimit(null)
-            updateCurrentFps()
-            dcEnabled?.let { updateHandler.postDelayed({ setHardwareDcEnabled(it) }, ACTION_DELAY) }
-        }
+            setHardwareDcEnabled(dcEnabled)
+        }, ACTION_DELAY)
     }
 
     private fun checkShouldLimitFps(context: Context, forceUpdate: Boolean = false) {
