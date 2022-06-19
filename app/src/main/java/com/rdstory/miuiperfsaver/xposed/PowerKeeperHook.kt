@@ -65,6 +65,7 @@ object PowerKeeperHook {
                 override fun beforeHookedMethod(param: MethodHookParam) {
                     FPSSaver.ensureInit(param.thisObject)
                     FPSSaver.getTargetFPS(param.args)
+                    DCFPSCompat.beforeApplyFps(param.args[1] as Int)
                 }
             }
         )
@@ -116,7 +117,7 @@ object PowerKeeperHook {
             outPkgFpsCookie[1] = pkgFps.coerceAtMost(fpsLimit)
             outPkgFpsCookie[2] = FPS_COOKIE_EXCLUDE
             if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
-                XposedBridge.log("[$LOG_TAG] fps: $fps, limit: $fpsLimit, out: ${outPkgFpsCookie.toList()}")
+                XposedBridge.log("[$LOG_TAG] fps: $fps, limit: $fpsLimit,  内部out: ${outPkgFpsCookie.toList()}")
             }
         }
 

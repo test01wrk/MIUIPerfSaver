@@ -19,6 +19,7 @@ import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
+import java.lang.ref.WeakReference
 import java.lang.reflect.Method
 
 object DCFPSCompat {
@@ -27,7 +28,18 @@ object DCFPSCompat {
         fun setFpsLimit(fpsLimit: Int?)
     }
 
+    private val IS_DC_FPS_INCOMPAT = try {
+        XposedHelpers.callStaticMethod(
+            Class.forName("miui.util.FeatureParser"),
+            "getBoolean",
+            "dc_backlight_fps_incompatible",
+            false
+        ) as Boolean
+    } catch (e: Throwable) {
+        false
+    }
     private const val ACTION_DELAY = 500L
+    private lateinit var contextRef: WeakReference<Context>
     private var displayFeatureMan: Any? = null
     private var setMethodInternalIIS: Method? = null
     private var setMethodInternalII: Method? = null
@@ -35,15 +47,17 @@ object DCFPSCompat {
     private val updateHandler = Handler(Looper.getMainLooper())
     private var shouldLimitFps: Boolean? = null
     private var dcEnabled = false
+    private var minRefreshRate = 60
     private lateinit var callback: Callback
     private lateinit var frameSettingObject: Any
     private var dcFpsLimit = 0
     private var dcBrightness = 0
 
     fun init(context: Context, frameSettingObject: Any, callback: Callback) {
-        if (!isDcFpsInCompat(context)) {
+        if (!IS_DC_FPS_INCOMPAT) {
             return
         }
+        contextRef = WeakReference(context)
         this.frameSettingObject = frameSettingObject
         this.callback = callback
         val updateConfig = fun() {
@@ -59,19 +73,6 @@ object DCFPSCompat {
         initReflections(context)
         updateConfig()
         startObserving(context)
-    }
-
-    private fun isDcFpsInCompat(context: Context): Boolean {
-        return try {
-            XposedHelpers.callStaticMethod(
-                XposedHelpers.findClass("miui.util.FeatureParser", context.classLoader),
-                "getBoolean",
-                "dc_backlight_fps_incompatible",
-                false
-            ) as Boolean
-        } catch (e: Throwable) {
-            false
-        }
     }
 
     private fun setHardwareDcEnabled(enable: Boolean) {
@@ -103,20 +104,17 @@ object DCFPSCompat {
 
     private fun startObserving(context: Context) {
         val observerHandler = Handler(Looper.getMainLooper())
-        val dcURI = Settings.System.getUriFor("dc_back_light")
-        context.contentResolver.registerContentObserver(dcURI, false,
-            object : ContentObserver(observerHandler) {
-                override fun onChange(selfChange: Boolean) {
-                    checkShouldLimitFps(context)
-                }
-            })
-        val brightnessURI = Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS)
-        context.contentResolver.registerContentObserver(brightnessURI, false,
-            object : ContentObserver(observerHandler) {
-                override fun onChange(selfChange: Boolean) {
-                    checkShouldLimitFps(context)
-                }
-            })
+        val observer = object : ContentObserver(observerHandler) {
+            override fun onChange(selfChange: Boolean) {
+                checkShouldLimitFps(context)
+            }
+        }
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor("dc_back_light"), false, observer)
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(Settings.System.SCREEN_BRIGHTNESS), false, observer)
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor("min_refresh_rate"), false, observer)
         context.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 observerHandler.postDelayed({ checkShouldLimitFps(context, true) }, 500)
@@ -131,10 +129,12 @@ object DCFPSCompat {
         }
         val shouldLimitFps = shouldLimitFps ?: return
         updateHandler.removeCallbacksAndMessages(null)
+        if (shouldLimitFps) setMinRefreshRate(60)
         callback.setFpsLimit(if (shouldLimitFps) 60 else null)
         updateCurrentFps()
         setHardwareDcEnabled(dcEnabled)
         updateHandler.postDelayed({
+            if (shouldLimitFps) setMinRefreshRate(dcFpsLimit)
             callback.setFpsLimit(if (shouldLimitFps) dcFpsLimit else null)
             if (!updateCurrentFps() && retry > 0) {
                 updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
@@ -146,6 +146,7 @@ object DCFPSCompat {
     private fun checkShouldLimitFps(context: Context, forceUpdate: Boolean = false) {
         val dcEnabled = Settings.System.getInt(context.contentResolver, "dc_back_light", 0) == 1
         val brightness = Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS)
+        minRefreshRate = Settings.System.getInt(context.contentResolver, "min_refresh_rate", 60)
         this.dcEnabled = dcEnabled
         val wasLimit = shouldLimitFps
         shouldLimitFps = dcEnabled && brightness <= dcBrightness && dcFpsLimit > 0
@@ -186,5 +187,17 @@ object DCFPSCompat {
             return true
         }
         return false
+    }
+
+    private fun setMinRefreshRate(fps: Int) {
+        val context = contextRef.get() ?: return
+        Settings.System.putInt(context.contentResolver, "min_refresh_rate", fps)
+    }
+
+    fun beforeApplyFps(fps: Int) {
+        if (!IS_DC_FPS_INCOMPAT) return
+        if (minRefreshRate != fps) {
+            setMinRefreshRate(fps)
+        }
     }
 }
