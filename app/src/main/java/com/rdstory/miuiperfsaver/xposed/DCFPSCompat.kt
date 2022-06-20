@@ -17,27 +17,26 @@ import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_DEFAULT
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
+import com.rdstory.miuiperfsaver.Utils
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
 
+/**
+ * Some device's DC backlight feature is not compatible with high refresh rate.
+ * Here we can limit the max refresh rate down to a DC compatible value.
+ * While DC with high refresh rate may work, there maybe other bugs because
+ * the system is not tweaked for that, eg. Xiaomi 12X's ambient light sensor
+ * would return strange value.
+ */
 object DCFPSCompat {
 
     interface Callback {
         fun setFpsLimit(fpsLimit: Int?)
     }
 
-    private val IS_DC_FPS_INCOMPAT = try {
-        XposedHelpers.callStaticMethod(
-            Class.forName("miui.util.FeatureParser"),
-            "getBoolean",
-            "dc_backlight_fps_incompatible",
-            false
-        ) as Boolean
-    } catch (e: Throwable) {
-        false
-    }
+    private val isDcIncompatible = Utils.isDCIncompatible()
     private const val ACTION_DELAY = 500L
     private lateinit var contextRef: WeakReference<Context>
     private var displayFeatureMan: Any? = null
@@ -54,7 +53,7 @@ object DCFPSCompat {
     private var dcBrightness = 0
 
     fun init(context: Context, frameSettingObject: Any, callback: Callback) {
-        if (!IS_DC_FPS_INCOMPAT) {
+        if (!isDcIncompatible) {
             return
         }
         contextRef = WeakReference(context)
@@ -76,6 +75,7 @@ object DCFPSCompat {
     }
 
     private fun setHardwareDcEnabled(enable: Boolean) {
+        // the "dc_back_light" setting only changes the UI, this method is what actually behind the scene
         displayFeatureMan?.callMethod<Unit>("setScreenEffect", 20, if (enable) 1 else 0)
     }
 
@@ -117,6 +117,7 @@ object DCFPSCompat {
             Settings.System.getUriFor("min_refresh_rate"), false, observer)
         context.registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                // restore DC after user unlocked keyguard
                 observerHandler.postDelayed({ checkShouldLimitFps(context, true) }, 500)
             }
         }, IntentFilter(Intent.ACTION_USER_PRESENT))
@@ -129,10 +130,12 @@ object DCFPSCompat {
         }
         val shouldLimitFps = shouldLimitFps ?: return
         updateHandler.removeCallbacksAndMessages(null)
+        // firstly, restore to 60Hz, refresh rate has to be 60 when enabling DC
         if (shouldLimitFps) setMinRefreshRate(60)
         callback.setFpsLimit(if (shouldLimitFps) 60 else null)
         updateCurrentFps()
         setHardwareDcEnabled(dcEnabled)
+        // then, enable DC and set to target fps
         updateHandler.postDelayed({
             if (shouldLimitFps) setMinRefreshRate(dcFpsLimit)
             callback.setFpsLimit(if (shouldLimitFps) dcFpsLimit else null)
@@ -174,6 +177,7 @@ object DCFPSCompat {
 
     private fun setFps(fps: Int): Boolean {
         val curCookie = frameSettingObject.getObjectField<Int>("mCurrentCookie")
+        // make sure there's change, void getting ignored for no change
         val cookie = if (curCookie == FPS_COOKIE_EXCLUDE) FPS_COOKIE_DEFAULT else FPS_COOKIE_EXCLUDE
         setMethodInternalIIS?.let { method ->
             frameSettingObject.getObjectField<Any>("mCurrentFgPkg")?.let {
@@ -195,7 +199,8 @@ object DCFPSCompat {
     }
 
     fun beforeApplyFps(fps: Int) {
-        if (!IS_DC_FPS_INCOMPAT) return
+        if (!isDcIncompatible) return
+        // set min refresh rate to target fps, avoid refresh rate change due to backlight bug
         if (minRefreshRate != fps) {
             setMinRefreshRate(fps)
         }
