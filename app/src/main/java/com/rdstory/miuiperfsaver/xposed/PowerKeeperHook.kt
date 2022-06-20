@@ -1,6 +1,7 @@
 package com.rdstory.miuiperfsaver.xposed
 
 import android.content.Context
+import android.os.Handler
 import android.os.Looper
 import android.util.ArraySet
 import android.util.Log
@@ -90,6 +91,7 @@ object PowerKeeperHook {
             } ?: return
             val context: Context = thisObject.getObjectField("mContext") ?: return
             hookedExcludeAppSet = thisObject.getObjectField("mExcludeApps")
+            val handler = Handler(Looper.getMainLooper())
             val updateConfig = fun() {
                 val pkgFpsMap = ConfigProvider.getSavedAppConfig(context) ?: emptyMap()
                 XposedBridge.log("[$LOG_TAG] config updated. " +
@@ -98,8 +100,10 @@ object PowerKeeperHook {
                         "fpsMap: ${pkgFpsMap.size}")
                 savedApps.clear()
                 savedApps.putAll(pkgFpsMap)
-                thisObject.getObjectField<Any>("mCurrentFgInfo")?.let { fg ->
-                    thisObject.callMethod<Unit>("onForegroundChanged", fg)
+                handler.post {
+                    thisObject.getObjectField<Any>("mCurrentFgInfo")?.let { fg ->
+                        thisObject.callMethod<Unit>("onForegroundChanged", fg)
+                    }
                 }
             }
             ConfigProvider.observeChange(context, APP_LIST_URI, updateConfig)
@@ -109,15 +113,17 @@ object PowerKeeperHook {
         fun getTargetFPS(outPkgFpsCookie: Array<Any>) {
             val fpsLimit = globalFpsLimit ?: supportFps?.firstOrNull() ?: Int.MAX_VALUE
             val pkg = outPkgFpsCookie[0] as String
-            val fps = outPkgFpsCookie[1] as Int
+            val sysFps = outPkgFpsCookie[1] as Int
             val cookie = outPkgFpsCookie[2] as Int
-            val pkgFps = (savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS])?.takeIf {
-                    (fps != it || cookie != FPS_COOKIE_EXCLUDE) && supportFps?.contains(it) == true
-                } ?: fps.takeIf { it > fpsLimit } ?: return
+            val setFps = savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS]
+            val pkgFps = setFps?.takeIf {
+                    (sysFps != it || cookie != FPS_COOKIE_EXCLUDE) && supportFps?.contains(it) == true
+                } ?: (setFps ?: sysFps).takeIf { it > fpsLimit } ?: return
             outPkgFpsCookie[1] = pkgFps.coerceAtMost(fpsLimit)
             outPkgFpsCookie[2] = FPS_COOKIE_EXCLUDE
             if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
-                XposedBridge.log("[$LOG_TAG] fps: $fps, limit: $fpsLimit,  内部out: ${outPkgFpsCookie.toList()}")
+                XposedBridge.log("[$LOG_TAG] sysFps: $sysFps, setFps: $setFps, " +
+                        "limit: $fpsLimit, out: ${outPkgFpsCookie.toList()}")
             }
         }
 

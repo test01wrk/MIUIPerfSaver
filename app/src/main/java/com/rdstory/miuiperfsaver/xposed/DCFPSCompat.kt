@@ -137,7 +137,6 @@ object DCFPSCompat {
         setHardwareDcEnabled(dcEnabled)
         // then, enable DC and set to target fps
         updateHandler.postDelayed({
-            if (shouldLimitFps) setMinRefreshRate(dcFpsLimit)
             callback.setFpsLimit(if (shouldLimitFps) dcFpsLimit else null)
             if (!updateCurrentFps() && retry > 0) {
                 updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
@@ -154,7 +153,7 @@ object DCFPSCompat {
         val wasLimit = shouldLimitFps
         shouldLimitFps = dcEnabled && brightness <= dcBrightness && dcFpsLimit > 0
         if (wasLimit != shouldLimitFps || forceUpdate) {
-            updateFpsLimit()
+            updateHandler.post { updateFpsLimit() }
         }
         if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
             XposedBridge.log("[$LOG_TAG] checkShouldLimitFps. dcEnabled=$dcEnabled, " +
