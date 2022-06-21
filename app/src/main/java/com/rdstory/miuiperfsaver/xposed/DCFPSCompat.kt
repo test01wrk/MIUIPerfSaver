@@ -48,7 +48,7 @@ object DCFPSCompat {
     private var dcEnabled = false
     private var minRefreshRate = 60
     private lateinit var callback: Callback
-    private lateinit var frameSettingObject: Any
+    private lateinit var frameSettingRef: WeakReference<Any>
     private var dcFpsLimit = 0
     private var dcBrightness = 0
 
@@ -57,7 +57,7 @@ object DCFPSCompat {
             return
         }
         contextRef = WeakReference(context)
-        this.frameSettingObject = frameSettingObject
+        this.frameSettingRef = WeakReference(frameSettingObject)
         this.callback = callback
         val updateConfig = fun() {
             val config = ConfigProvider.getDCCompatConfig(context) ?: emptyMap()
@@ -69,7 +69,7 @@ object DCFPSCompat {
             checkShouldLimitFps(context, true)
         }
         ConfigProvider.observeChange(context, DC_COMPAT_CONFIG_URI, updateConfig)
-        initReflections(context)
+        initReflections(context, frameSettingObject)
         updateConfig()
         startObserving(context)
     }
@@ -79,7 +79,7 @@ object DCFPSCompat {
         displayFeatureMan?.callMethod<Unit>("setScreenEffect", 20, if (enable) 1 else 0)
     }
 
-    private fun initReflections(context: Context) {
+    private fun initReflections(context: Context, frameSettingObject: Any) {
         val classDisplayFrameSetting = frameSettingObject::class.java
         setMethodInternalIIS = XposedHelpers.findMethodExactIfExists(
             classDisplayFrameSetting,
@@ -164,6 +164,7 @@ object DCFPSCompat {
     }
 
     private fun updateCurrentFps(): Boolean {
+        val frameSettingObject = frameSettingRef.get() ?: return false
         val fgResult = frameSettingObject.getObjectField<Any>("mCurrentFgInfo")?.let {
             frameSettingObject.callMethod<Unit>("onForegroundChanged", it)
             true
@@ -175,6 +176,7 @@ object DCFPSCompat {
     }
 
     private fun setFps(fps: Int): Boolean {
+        val frameSettingObject = frameSettingRef.get() ?: return false
         val curCookie = frameSettingObject.getObjectField<Int>("mCurrentCookie")
         // make sure there's change, void getting ignored for no change
         val cookie = if (curCookie == FPS_COOKIE_EXCLUDE) FPS_COOKIE_DEFAULT else FPS_COOKIE_EXCLUDE
