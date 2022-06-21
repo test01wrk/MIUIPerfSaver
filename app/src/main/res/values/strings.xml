@@ -46,9 +46,14 @@
     <string name="joyose_profile_process_rule_block_all">Block All Rules</string>
     <string name="joyose_profile_process_rule_rm_app_list">Remove App Rules</string>
     <string name="joyose_profile_process_rule_rm_app_dfps">Remove Dynamic FPS</string>
+    <string name="joyose_profile_process_rule_keep_all">Keep All Rules</string>
     <string name="joyose_open_local_settings">Start Joyose Local Settings</string>
     <string name="joyose_open_local_settings_desc">(root permission required) $ %1$s</string>
     <string name="joyose_profile_process_rule_desc">Block or modify cloud strategy</string>
     <string name="open">Start</string>
     <string name="show_launcher_icon">Show launcher icon</string>
+    <string name="dc_compat_item_title"><![CDATA[DC backlight & Refresh Rate Compat]]></string>
+    <string name="dc_compat_item_desc">Set refresh rate limit if brightness under threshold. Click button to set current brightness as threshold value</string>
+    <string name="dc_fps_no_limit">No Limit</string>
+    <string name="dc_brightness_value">DC Brightness:  %d</string>
 </resources>

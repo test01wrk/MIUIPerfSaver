@@ -3,7 +3,7 @@
     <string name="app_name_release">MIUI 性能救星</string>
     <string name="app_name_debug">MIUI 性能救星-DEBUG</string>
     <string name="app_xposed_description">移除 MIUI 对应用的性能限制，以最高帧率运行应用</string>
-    <string name="app_xposed_description_xp">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用需要强制停止\"性能与电量\"/\"Joyose\"应用一次并清空\"Joyose\"全部数据，后续修改模块内设置立即生效</string>
+    <string name="app_xposed_description_xp">移除 MIUI 对应用的性能限制，以最高帧率运行应用。更多信息见模块内说明</string>
     <string name="app_xposed_description_full">移除 MIUI 对应用的性能限制，以最高帧率运行应用。首次启用需要强制停止\"性能与电量\"/\"Joyose\"应用一次并清空\"Joyose\"全部数据，后续修改模块内设置立即生效。UI 来自 https://github.com/Palatis/XAppDebug</string>
 
     <string name="title_activity_main">@string/app_name</string>
@@ -49,5 +49,10 @@
     <string name="joyose_profile_process_rule">云控规则处理方式</string>
     <string name="open">打开</string>
     <string name="show_launcher_icon">显示桌面图标</string>
+    <string name="joyose_profile_process_rule_keep_all">保留全部规则</string>
+    <string name="dc_compat_item_title">DC 调光兼容高刷</string>
+    <string name="dc_compat_item_desc">可设置低于阈值亮度时自动限制到指定刷新率。系统设置中开启 DC 调光，下拉选择兼容的刷新率，点按钮设置当前亮度为阈值亮度</string>
+    <string name="dc_fps_no_limit">无限制</string>
+    <string name="dc_brightness_value">DC 亮度: %d</string>
 
 </resources>

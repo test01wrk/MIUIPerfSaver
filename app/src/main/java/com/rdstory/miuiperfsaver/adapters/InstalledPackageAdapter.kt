@@ -15,12 +15,14 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.collection.SparseArrayCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.rdstory.miuiperfsaver.Configuration
+import com.rdstory.miuiperfsaver.Constants.FAKE_PKG_DC_COMPAT
 import com.rdstory.miuiperfsaver.Constants.FAKE_PKG_DEFAULT_FPS
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_PERF_SAVED_FIRST
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_SYSTEM
@@ -30,6 +32,7 @@ import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_LABEL
 import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_PACKAGE_NAME
 import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_UPDATE_TIME
 import com.rdstory.miuiperfsaver.R
+import com.rdstory.miuiperfsaver.Utils
 import java.util.*
 
 @SuppressLint("NotifyDataSetChanged")
@@ -41,14 +44,20 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     private val mFilteredPackages: MutableList<PackageInfoCache> = ArrayList()
     private val mFixedHeaders: MutableList<FakePackage> = ArrayList()
     private var mFilterQuery = ""
+    private val isDCIncompatible = Utils.isDCIncompatible()
+    private val defaultFpsItem = FakePackage(FakePackageType.DEFAULT_FPS).apply {
+        icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
+        title = context.getString(R.string.global_default_fps)
+        description = context.getString(R.string.global_default_fps_desc)
+    }
+    private val dcCompatItem = FakePackage(FakePackageType.DC_COMPAT).apply {
+        icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
+        title = context.getString(R.string.dc_compat_item_title)
+        description = context.getString(R.string.dc_compat_item_desc)
+    }
 
     init {
         setHasStableIds(true)
-        mFixedHeaders.add(FakePackage(FakePackageType.DEFAULT_FPS).apply {
-            icon = AppCompatResources.getDrawable(context, R.mipmap.ic_launcher)
-            title = context.getString(R.string.global_default_fps)
-            description = context.getString(R.string.global_default_fps_desc)
-        })
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
@@ -61,7 +70,8 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
     }
 
     enum class FakePackageType(val pkg: String) {
-        DEFAULT_FPS(FAKE_PKG_DEFAULT_FPS)
+        DEFAULT_FPS(FAKE_PKG_DEFAULT_FPS),
+        DC_COMPAT(FAKE_PKG_DC_COMPAT)
     }
 
     class FakePackage(val type: FakePackageType) {
@@ -94,7 +104,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         val isSystemApp: Boolean
             get() = hasFlag(ApplicationInfo.FLAG_SYSTEM)
         val isPerfSaved: Boolean
-            get() = Configuration.isPerfSaved(packageName)
+            get() = Configuration.isPkgHasFps(packageName)
         val installTime: Long
             get() = pkg.firstInstallTime
         val updateTime: Long
@@ -127,7 +137,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
 
     override fun getItemViewType(position: Int): Int {
         return when {
-            position < mFixedHeaders.size -> mFixedHeaders[position]::class.java.hashCode()
+            position < mFixedHeaders.size -> mFixedHeaders[position].type.hashCode()
             else -> mFilteredPackages[position - mFixedHeaders.size]::class.java.hashCode()
         }
     }
@@ -208,6 +218,13 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         }
         mFilteredPackages.clear()
         mFilteredPackages.addAll(filtered)
+        mFixedHeaders.clear()
+        if (TextUtils.isEmpty(mFilterQuery)) {
+            mFixedHeaders.add(defaultFpsItem)
+            if (isDCIncompatible) {
+                mFixedHeaders.add(dcCompatItem)
+            }
+        }
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
@@ -225,6 +242,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         private val applicationLabel: AppCompatTextView = itemView.findViewById(R.id.application_label)
         private val packageName: AppCompatTextView = itemView.findViewById(R.id.package_name)
         private val fpsSpinner: AppCompatSpinner = itemView.findViewById(R.id.fps_spinner)
+        private val button: AppCompatButton = itemView.findViewById(R.id.button)
         private var pkg: PackageInfoCache? = null
         private var fakePkg: FakePackage? = null
 
@@ -258,18 +276,33 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
             packageName.text = desc
             fpsSpinner.adapter = fpsSpinner.adapter ?: createSpinnerAdapter()
             fpsSpinner.onItemSelectedListener = this
-            val spinnerIndex = (fakePkg?.type?.pkg ?: pkg?.packageName)?.let {
-                Configuration.fpsIndex(it)
-            } ?: -1
-            fpsSpinner.setSelection(spinnerIndex + 1)
+            if (fakePkg?.type == FakePackageType.DC_COMPAT) {
+                val spinnerIndex = Configuration.supportedFPS.indexOf(Configuration.dcFpsLimit)
+                fpsSpinner.setSelection(spinnerIndex + 1)
+                button.visibility = View.VISIBLE
+                button.text = context.getString(R.string.dc_brightness_value, Configuration.dcBrightness)
+                button.setOnClickListener {
+                    Configuration.setDCBrightness(Utils.getSystemBrightness(context))
+                    button.text = context.getString(R.string.dc_brightness_value, Configuration.dcBrightness)
+                }
+            } else {
+                val spinnerIndex = (fakePkg?.type?.pkg ?: pkg?.packageName)?.let {
+                    Configuration.fpsIndex(it)
+                } ?: -1
+                fpsSpinner.setSelection(spinnerIndex + 1)
+                button.visibility = View.GONE
+            }
         }
 
         private fun createSpinnerAdapter(): ArrayAdapter<String> {
-            val items = Configuration.supportedFPS.map { "$it Hz" }.toMutableList().apply {
-                val defaultResId = if (fakePkg?.type?.pkg === FAKE_PKG_DEFAULT_FPS) {
-                    R.string.fps_value_system
-                } else {
-                    R.string.fps_value_default
+            val fpsList = Configuration.supportedFPS.filter {
+                it >= 60 || fakePkg?.type != FakePackageType.DC_COMPAT
+            }
+            val items = fpsList.map { "$it Hz" }.toMutableList().apply {
+                val defaultResId = when (fakePkg?.type) {
+                    FakePackageType.DEFAULT_FPS -> R.string.fps_value_system
+                    FakePackageType.DC_COMPAT -> R.string.dc_fps_no_limit
+                    else -> R.string.fps_value_default
                 }
                 add(0, itemView.context.getString(defaultResId))
             }
@@ -284,8 +317,13 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         }
 
         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            val packageName = fakePkg?.type?.pkg ?: pkg?.packageName ?: return
-            Configuration.setFps(packageName, Configuration.supportedFPS.getOrNull(id.toInt()))
+            val fps = Configuration.supportedFPS.getOrNull(id.toInt())
+            if (fakePkg?.type == FakePackageType.DC_COMPAT) {
+                Configuration.setDCFpsLimit(fps)
+            } else {
+                val packageName = fakePkg?.type?.pkg ?: pkg?.packageName ?: return
+                Configuration.setPkgFps(packageName, fps)
+            }
         }
 
         override fun onNothingSelected(parent: AdapterView<*>?) {

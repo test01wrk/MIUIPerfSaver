@@ -14,12 +14,22 @@ fun <T> Any.getObjectField(filedName: String): T? {
     }
 }
 
-fun <T> Any.callMethod(methodName: String, vararg args: Any): T? {
+fun <T> Any.callMethod(methodName: String, vararg args: Any?): T? {
     return try {
         @Suppress("UNCHECKED_CAST")
         XposedHelpers.callMethod(this, methodName, *args) as? T
     } catch (e: Exception) {
         XposedBridge.log("[${Constants.LOG_TAG}] failed to call method: ${this.javaClass.name}.$methodName. ${e.message}")
+        null
+    }
+}
+
+fun <T> Class<*>.callStaticMethod(methodName: String, vararg args: Any?): T? {
+    return try {
+        @Suppress("UNCHECKED_CAST")
+        XposedHelpers.callStaticMethod(this, methodName, *args) as? T
+    } catch (e: Exception) {
+        XposedBridge.log("[${Constants.LOG_TAG}] failed to call static method: ${this.javaClass.name}.$methodName. ${e.message}")
         null
     }
 }
