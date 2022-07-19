@@ -5,8 +5,10 @@ import android.content.SharedPreferences
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.APP_LIST_URI
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.JOYOSE_CONFIG_URI
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.REFRESH_RATE_URI
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_BRIGHTNESS
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_FPS_LIMIT
+import com.rdstory.miuiperfsaver.Constants.PREF_KEY_FIXED_REFRESH_RATE
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_JOYOSE_PROFILE_RULE
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
@@ -24,6 +26,8 @@ object Configuration {
         private set
     var dcBrightness = 0
         private set
+    var fixedFps = 0
+        private set
 
     fun init() {
         val context = MainApplication.application
@@ -36,6 +40,8 @@ object Configuration {
         dcFpsLimit = sharedPreferences.getInt(PREF_KEY_DC_FPS_LIMIT, 0)
             .takeIf { supportedFPS.contains(it) } ?: 0
         dcBrightness = sharedPreferences.getInt(PREF_KEY_DC_BRIGHTNESS, 0)
+        fixedFps = sharedPreferences.getInt(PREF_KEY_FIXED_REFRESH_RATE, 0)
+            .takeIf { supportedFPS.contains(it) } ?: 0
         try {
             sharedPreferences.getStringSet(PREF_KEY_SAVED_APP_LIST, null)
         } catch (ignore: Exception) {
@@ -76,6 +82,7 @@ object Configuration {
             ConfigProvider.notifyChange(MainApplication.application, APP_LIST_URI)
         }
     }
+
     fun isPkgHasFps(packageName: String): Boolean {
         return savedApps.contains(packageName)
     }
@@ -105,6 +112,15 @@ object Configuration {
             dcBrightness = brightness
             sharedPreferences.edit().putInt(PREF_KEY_DC_BRIGHTNESS, dcBrightness).apply()
             ConfigProvider.notifyChange(MainApplication.application, DC_COMPAT_CONFIG_URI)
+        }
+    }
+
+    fun setFixedFps(fps: Int) {
+        val validFps = fps.takeIf { supportedFPS.contains(it) } ?: 0
+        if (fixedFps != validFps) {
+            fixedFps = validFps
+            sharedPreferences.edit().putInt(PREF_KEY_FIXED_REFRESH_RATE, fps).apply()
+            ConfigProvider.notifyChange(MainApplication.application, REFRESH_RATE_URI)
         }
     }
 

@@ -13,6 +13,7 @@ import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.COLUMN_DC_BRIGHTNESS
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.COLUMN_DC_FPS_LIMIT
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
+import com.rdstory.miuiperfsaver.ConfigProvider.Companion.REFRESH_RATE_URI
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_DEFAULT
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
@@ -51,6 +52,7 @@ object DCFPSCompat {
     private lateinit var frameSettingRef: WeakReference<Any>
     private var dcFpsLimit = 0
     private var dcBrightness = 0
+    private var fixedRefreshRate: Int? = null
 
     fun init(context: Context, frameSettingObject: Any, callback: Callback) {
         if (!isDcIncompatible) {
@@ -66,9 +68,11 @@ object DCFPSCompat {
             val brightness = config[COLUMN_DC_BRIGHTNESS] ?: 0
             dcFpsLimit = fpsLimit
             dcBrightness = brightness
+            fixedRefreshRate = ConfigProvider.getFixedRefreshRate(context).takeIf { it > 0 }
             checkShouldLimitFps(context, true)
         }
         ConfigProvider.observeChange(context, DC_COMPAT_CONFIG_URI, updateConfig)
+        ConfigProvider.observeChange(context, REFRESH_RATE_URI, updateConfig)
         initReflections(context, frameSettingObject)
         updateConfig()
         startObserving(context)
@@ -126,7 +130,7 @@ object DCFPSCompat {
     private fun updateFpsLimit(retry: Int = 10) {
         if (Log.isLoggable(LOG_TAG, LOG_LEVEL)) {
             XposedBridge.log("[$LOG_TAG] updateFpsLimit. " +
-                    "shouldLimit=$shouldLimitFps, limit=$dcFpsLimit")
+                    "shouldLimit=$shouldLimitFps, limit=$dcFpsLimit, fixedFpx=$fixedRefreshRate")
         }
         val shouldLimitFps = shouldLimitFps ?: return
         updateHandler.removeCallbacksAndMessages(null)
@@ -137,7 +141,7 @@ object DCFPSCompat {
         setHardwareDcEnabled(dcEnabled)
         // then, enable DC and set to target fps
         updateHandler.postDelayed({
-            callback.setFpsLimit(if (shouldLimitFps) dcFpsLimit else null)
+            callback.setFpsLimit(if (shouldLimitFps) fixedRefreshRate ?: dcFpsLimit else null)
             if (!updateCurrentFps() && retry > 0) {
                 updateHandler.postDelayed({ updateFpsLimit(retry - 1) }, ACTION_DELAY)
             }
@@ -202,7 +206,7 @@ object DCFPSCompat {
     fun beforeApplyFps(fps: Int) {
         if (!isDcIncompatible) return
         // set min refresh rate to target fps, avoid refresh rate change due to backlight bug
-        if (minRefreshRate != fps) {
+        if ((shouldLimitFps == true && minRefreshRate != fps) || fps < minRefreshRate) {
             setMinRefreshRate(fps)
         }
     }
