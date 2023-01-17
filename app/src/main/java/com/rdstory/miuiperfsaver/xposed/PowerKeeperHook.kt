@@ -7,7 +7,6 @@ import android.util.ArraySet
 import android.util.Log
 import com.rdstory.miuiperfsaver.ConfigProvider
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.APP_LIST_URI
-import com.rdstory.miuiperfsaver.ConfigProvider.Companion.REFRESH_RATE_URI
 import com.rdstory.miuiperfsaver.Constants
 import com.rdstory.miuiperfsaver.Constants.FPS_COOKIE_EXCLUDE
 import com.rdstory.miuiperfsaver.Constants.LOG_LEVEL
@@ -80,7 +79,6 @@ object PowerKeeperHook {
         private var supportFps: Set<Int>? = null
         private var hookedExcludeAppSet: ArraySet<String>? = null
         var globalFpsLimit: Int? = null
-        var fixedRefreshRate: Int? = null
 
         fun ensureInit(thisObject: Any) {
             if (initialized) {
@@ -95,7 +93,6 @@ object PowerKeeperHook {
             hookedExcludeAppSet = thisObject.getObjectField("mExcludeApps")
             val handler = Handler(Looper.getMainLooper())
             val updateConfig = fun() {
-                fixedRefreshRate = ConfigProvider.getFixedRefreshRate(context).takeIf { it > 0 }
                 val pkgFpsMap = ConfigProvider.getSavedAppConfig(context) ?: emptyMap()
                 XposedBridge.log("[$LOG_TAG] config updated. " +
                         "supportFps: $supportFps, " +
@@ -110,7 +107,6 @@ object PowerKeeperHook {
                 }
             }
             ConfigProvider.observeChange(context, APP_LIST_URI, updateConfig)
-            ConfigProvider.observeChange(context, REFRESH_RATE_URI, updateConfig)
             updateConfig()
         }
 
@@ -119,7 +115,7 @@ object PowerKeeperHook {
             val pkg = outPkgFpsCookie[0] as String
             val sysFps = outPkgFpsCookie[1] as Int
             val cookie = outPkgFpsCookie[2] as Int
-            val setFps = fixedRefreshRate ?: savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS]
+            val setFps = savedApps[pkg] ?: savedApps[Constants.FAKE_PKG_DEFAULT_FPS]
             val pkgFps = setFps?.takeIf {
                     (sysFps != it || cookie != FPS_COOKIE_EXCLUDE) && supportFps?.contains(it) == true
                 } ?: (setFps ?: sysFps).takeIf { it > fpsLimit } ?: return

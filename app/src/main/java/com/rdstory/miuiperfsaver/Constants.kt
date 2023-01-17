@@ -18,7 +18,6 @@ object Constants {
     const val PREF_KEY_JOYOSE_PROFILE_RULE = "preference_joyose_profile_rule"
     const val PREF_KEY_DC_FPS_LIMIT = "preference_dc_fps_limit"
     const val PREF_KEY_DC_BRIGHTNESS = "preference_dc_brightness"
-    const val PREF_KEY_FIXED_REFRESH_RATE = "preference_fixed_refresh_rate"
 
     const val FAKE_PKG_DEFAULT_FPS = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DEFAULT_FPS"
     const val FAKE_PKG_DC_COMPAT = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DC_COMPAT"
