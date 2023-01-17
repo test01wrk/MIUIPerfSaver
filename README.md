@@ -29,6 +29,9 @@
 ## 感谢
 应用列表界面的 UI 和基础逻辑，改自 [XAppDebug](https://github.com/Palatis/XAppDebug) 项目
 
+## 已知问题
+- 收到很多反馈 MIUI14 系统上失效，我这边需要等收到 MIUI14 正式版推送更新后才能调试
+
 ---
 
 # MIUI Performance Saver
