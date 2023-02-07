@@ -42,7 +42,7 @@ object JoyoseHook {
         unHook = XposedHelpers.findAndHookConstructor(HttpURLConnection::class.java, URL::class.java,
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
-                    hookHttpImpl(param.thisObject::class.java, joyoseProfileRuleHolder)
+                    hookHttpImpl(param.thisObject::class.java)
                     unHook?.unhook() // hook once
                 }
             })
@@ -115,17 +115,19 @@ object JoyoseHook {
     /**
      * Hook HttpURLConnection used to block tracking and ad request
      */
-    private fun hookHttpImpl(httpImplClass: Class<*>, ruleHolder: Array<JoyoseProfileRule>) {
-        XposedHelpers.findAndHookMethod(httpImplClass, "connect",
-            object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    val con = param.thisObject as HttpURLConnection
-                    val url = con.url?.toString() ?: return
-                    if (url.contains("tracking.miui.com/") || url.contains("ad.xiaomi.com/")) {
-                        param.throwable = IOException() // stop tracking and ad requests
-                    }
+    private fun hookHttpImpl(httpImplClass: Class<*>) {
+        val blockRequestHook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val con = param.thisObject as HttpURLConnection
+                val url = con.url?.toString() ?: return
+                if (url.contains(Regex("(tracking|ad)(\\.[^/]+)*\\.(miui|xiaomi)\\.com/"))) {
+                    param.throwable = IOException() // stop tracking and ad requests
                 }
-            })
+            }
+        }
+        safeFindAndHookMethod(httpImplClass, "connect", blockRequestHook)
+        safeFindAndHookMethod(httpImplClass, "getOutputStream", blockRequestHook)
+        safeFindAndHookMethod(httpImplClass, "getInputStream", blockRequestHook)
         XposedBridge.log("[${LOG_TAG}] HttpURLConnection hooked, impl: ${httpImplClass.name}")
     }
 
