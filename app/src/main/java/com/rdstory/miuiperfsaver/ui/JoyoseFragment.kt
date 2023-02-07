@@ -8,9 +8,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
+import com.rdstory.miuiperfsaver.Constants.CLEAR_JOYOSE_CMD
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_ACTIVITY
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
+import com.rdstory.miuiperfsaver.Constants.JOYOSE_SERVICE
 import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_CMD
+import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_SERVICE_CMD
+import com.rdstory.miuiperfsaver.Constants.STOP_JOYOSE_SERVICE_CMD
 import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
 import com.rdstory.miuiperfsaver.adapters.JoyoseSettingAdapter
@@ -40,14 +44,36 @@ class JoyoseFragment : Fragment() {
                 )
             }
         )
-        val resolveInfo = requireContext().packageManager.resolveActivity(Intent().apply {
+        list.add(JoyoseSettingAdapter.SuCmdButtonItem().apply {
+            title = getString(R.string.joyose_clear_application_data)
+            desc = getString(R.string.joyose_su_cmd_desc, CLEAR_JOYOSE_CMD)
+            button = getString(R.string.clear_data)
+            cmd = CLEAR_JOYOSE_CMD
+        })
+        requireContext().packageManager.resolveService(Intent().apply {
+            component = ComponentName.createRelative(JOYOSE_PKG, JOYOSE_SERVICE)
+        }, 0)?.let {
+            list.add(JoyoseSettingAdapter.SuCmdButtonItem().apply {
+                title = getString(R.string.joyose_start_service)
+                desc = getString(R.string.joyose_su_cmd_desc, START_JOYOSE_SERVICE_CMD)
+                button = getString(R.string.start_service)
+                cmd = START_JOYOSE_SERVICE_CMD
+            })
+            list.add(JoyoseSettingAdapter.SuCmdButtonItem().apply {
+                title = getString(R.string.joyose_stop_service)
+                desc = getString(R.string.joyose_su_cmd_desc, STOP_JOYOSE_SERVICE_CMD)
+                button = getString(R.string.stop_service)
+                cmd = STOP_JOYOSE_SERVICE_CMD
+            })
+        }
+        requireContext().packageManager.resolveActivity(Intent().apply {
             component = ComponentName.createRelative(JOYOSE_PKG, JOYOSE_ACTIVITY)
-        }, 0)
-        if (resolveInfo != null) {
-            list.add(JoyoseSettingAdapter.GotoLocalSettingsButtonItem().apply {
+        }, 0)?.let {
+            list.add(JoyoseSettingAdapter.SuCmdButtonItem().apply {
                 title = getString(R.string.joyose_open_local_settings)
-                desc = getString(R.string.joyose_open_local_settings_desc, START_JOYOSE_CMD)
+                desc = getString(R.string.joyose_su_cmd_desc, START_JOYOSE_CMD)
                 button = getString(R.string.open)
+                cmd = START_JOYOSE_CMD
             })
         }
         return list

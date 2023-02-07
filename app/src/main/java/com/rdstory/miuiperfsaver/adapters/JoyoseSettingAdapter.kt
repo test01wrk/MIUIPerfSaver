@@ -6,13 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.RecyclerView
 import com.rdstory.miuiperfsaver.Configuration
 import com.rdstory.miuiperfsaver.Constants.LOG_TAG
-import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_CMD
 import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
 
@@ -27,8 +27,9 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         var selections: List<Pair<JoyoseProfileRule, String>>? = null
     }
 
-    class GotoLocalSettingsButtonItem : SettingItem() {
-        var button: String? = null
+    class SuCmdButtonItem : SettingItem() {
+        var button: String = ""
+        var cmd: String = ""
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -62,18 +63,22 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
                 if (selectIndex >= 0) {
                     spinnerView.setSelection(selectIndex)
                 }
-            } else if (item is GotoLocalSettingsButtonItem) {
+            } else if (item is SuCmdButtonItem) {
                 buttonView.visibility = View.VISIBLE
                 buttonView.text = item.button
                 buttonView.setOnClickListener {
                     Thread {
                         val process = Runtime.getRuntime().exec(arrayOf(
-                            "su", "-c", START_JOYOSE_CMD
+                            "su", "-c", item.cmd
                         ))
-                        process.waitFor()
-                        val stdout = String(process.inputStream.use { it.readBytes() }, Charsets.UTF_8)
-                        val stderr = String(process.errorStream.use { it.readBytes() }, Charsets.UTF_8)
-                        Log.i(LOG_TAG, "start joyose settings. stdout: $stdout, stderr: $stderr")
+                        val exitCode = process.waitFor()
+                        val stdout = String(process.inputStream.use { it.readBytes() }, Charsets.UTF_8).trim()
+                        val stderr = String(process.errorStream.use { it.readBytes() }, Charsets.UTF_8).trim()
+                        Log.i(LOG_TAG, "su cmd executed. exitCode: $exitCode, stdout: $stdout, stderr: $stderr")
+                        buttonView.post {
+                            val msg = if (exitCode == 0) stdout else stderr
+                            Toast.makeText(buttonView.context, "[${exitCode}] $msg", Toast.LENGTH_SHORT).show()
+                        }
                     }.start()
                 }
             }

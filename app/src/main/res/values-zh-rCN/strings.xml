@@ -40,12 +40,12 @@
     <string name="global_default_fps_desc">设置全局默认刷新率。所有未单独配置的应用默认使用此刷新率</string>
     <string name="fps_value_system">系统值</string>
     <string name="menu_joyose">Joyose</string>
-    <string name="joyose_profile_process_rule_desc">完全屏蔽云控规则，或修改部分规则内容</string>
+    <string name="joyose_profile_process_rule_desc">完全屏蔽云控规则，或修改部分规则内容。修改选项后需清除 Joyose 数据、重启 Joyose 服务才会生效</string>
     <string name="joyose_profile_process_rule_block_all">屏蔽全部规则</string>
     <string name="joyose_profile_process_rule_rm_app_list">删除应用列表</string>
     <string name="joyose_profile_process_rule_rm_app_dfps">删除帧率限制</string>
     <string name="joyose_open_local_settings">打开 Joyose 本地配置页面</string>
-    <string name="joyose_open_local_settings_desc">"（需 root 权限）$ %1$s"</string>
+    <string name="joyose_su_cmd_desc">"（需 root 权限）$ %1$s"</string>
     <string name="joyose_profile_process_rule">云控规则处理方式</string>
     <string name="open">打开</string>
     <string name="show_launcher_icon">显示桌面图标</string>
@@ -54,5 +54,11 @@
     <string name="dc_compat_item_desc">可设置低于阈值亮度时自动限制到指定刷新率。系统设置中开启 DC 调光，下拉选择兼容的刷新率，点按钮设置当前亮度为阈值亮度</string>
     <string name="dc_fps_no_limit">无限制</string>
     <string name="dc_brightness_value">DC 亮度: %d</string>
+    <string name="joyose_clear_application_data">清除 Joyose 应用数据</string>
+    <string name="joyose_start_service">启动 Joyose 服务</string>
+    <string name="clear_data">清除数据</string>
+    <string name="start_service">启动服务</string>
+    <string name="joyose_stop_service" >停止 Joyose 服务</string>
+    <string name="stop_service" >停止服务</string>
 
 </resources>
