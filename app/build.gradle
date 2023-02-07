@@ -9,14 +9,14 @@ project.ext {
 }
 
 android {
-    compileSdk 31
+    compileSdk 33
 
     defaultConfig {
         applicationId project.ext.applicationId
         minSdk 28
-        targetSdk 31
-        versionCode 1060
-        versionName "1.0.6"
+        targetSdk 33
+        versionCode 1070
+        versionName "1.0.7"
         resConfigs "zh-rCN"
         manifestPlaceholders = [
                 configProviderAuthority: project.ext.configProviderAuthority
