@@ -37,6 +37,8 @@
     <string name="xposed_not_found">Xposed framework is inactive.</string>
     <string name="visit_github">GitHub</string>
 
+    <string name="url_coolapk_profile_http" translatable="false">https://www.coolapk.com/u/19284242</string>
+    <string name="url_coolapk_profile_app" translatable="false">coolmarket://u/19284242</string>
     <string name="url_project_page" translatable="false">https://github.com/test01wrk/MIUIPerfSaver</string>
     <string name="fps_value_default">Default</string>
     <string name="fps_value_system">System</string>
@@ -62,4 +64,5 @@
     <string name="start_service">Start Service</string>
     <string name="joyose_stop_service" >Stop Joyose Service</string>
     <string name="stop_service" >Stop Service</string>
+    <string name="visit_coolapk">CoolAPK Profile</string>
 </resources>

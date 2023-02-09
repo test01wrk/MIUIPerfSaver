@@ -60,5 +60,6 @@
     <string name="start_service">启动服务</string>
     <string name="joyose_stop_service" >停止 Joyose 服务</string>
     <string name="stop_service" >停止服务</string>
+    <string name="visit_coolapk">作者酷安</string>
 
 </resources>
