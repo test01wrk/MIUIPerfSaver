@@ -69,9 +69,25 @@
         android:drawableTint="?colorAccent"
         android:text="@string/visit_github"
         app:layout_constraintBottom_toTopOf="@+id/xposed"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/coolapk_profile"
+        app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/version" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/coolapk_profile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:drawableStart="@drawable/ic_coolapk"
+        android:drawablePadding="4dp"
+        android:text="@string/visit_coolapk"
+        android:drawableTintMode="multiply"
+        app:layout_constraintBottom_toBottomOf="@+id/github"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintStart_toEndOf="@+id/github"
+        app:layout_constraintTop_toTopOf="@+id/github" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/xposed"

@@ -23,13 +23,25 @@ class AboutFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         val root: View = inflater.inflate(R.layout.fragment_about, container, false)
-        val button = root.findViewById<Button>(R.id.github)
-        button.setOnClickListener {
+        root.findViewById<Button>(R.id.github).setOnClickListener {
             startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
                     Uri.parse(getString(R.string.url_project_page))
-                )
+                ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+            )
+        }
+        root.findViewById<Button>(R.id.coolapk_profile).setOnClickListener {
+            startActivity(
+                (Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(getString(R.string.url_coolapk_profile_app))
+                ).takeIf {
+                    root.context.packageManager.resolveActivity(it, 0) != null
+                } ?: Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(getString(R.string.url_coolapk_profile_http))
+                )).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
             )
         }
         val checkBox = root.findViewById<AppCompatCheckBox>(R.id.checkbox_show_icon)
