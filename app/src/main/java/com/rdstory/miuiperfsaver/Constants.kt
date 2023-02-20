@@ -31,6 +31,7 @@ object Constants {
     const val JOYOSE_PROFILE_RULE_BLOCK_ALL = "block_all"
     const val JOYOSE_PROFILE_RULE_RM_APP_LIST = "remove_app_list"
     const val JOYOSE_PROFILE_RULE_RM_APP_DFPS = "remove_app_dynamic_fps"
+    const val JOYOSE_PROFILE_RULE_MOD_APP_DFPS = "modify_app_dynamic_fps"
     const val JOYOSE_PROFILE_RULE_KEEP_ALL = "keep_all"
 
     const val FPS_COOKIE_DEFAULT = 244
@@ -41,5 +42,6 @@ enum class JoyoseProfileRule(val value: String) {
     BLOCK_ALL(Constants.JOYOSE_PROFILE_RULE_BLOCK_ALL),
     RM_APP_LIST(Constants.JOYOSE_PROFILE_RULE_RM_APP_LIST),
     RM_APP_DFPS(Constants.JOYOSE_PROFILE_RULE_RM_APP_DFPS),
+    MOD_APP_DFPS(Constants.JOYOSE_PROFILE_RULE_MOD_APP_DFPS),
     KEEP_ALL(Constants.JOYOSE_PROFILE_RULE_KEEP_ALL)
 }

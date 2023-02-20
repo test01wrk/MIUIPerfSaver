@@ -165,14 +165,25 @@ object JoyoseHook {
             ?.optJSONObject("booster_config")
         val overrideConfig = boosterConfig?.optJSONArray("ovrride_config")
         if (overrideConfig != null){
-            if (profileRule == JoyoseProfileRule.RM_APP_DFPS) {
+            if (profileRule == JoyoseProfileRule.RM_APP_DFPS || profileRule == JoyoseProfileRule.MOD_APP_DFPS) {
                 for (i in 0 until overrideConfig.length()) {
                     overrideConfig.optJSONObject(i)?.let { o ->
                         val iterator = o.keys()
                         while (iterator.hasNext()) {
-                            val key = iterator.next();
-                            if (key.contains("dynamic", true) && key.contains("fps", true)) {
-                                iterator.remove()
+                            val key = iterator.next()
+                            val value = o.optString(key)
+                            if (
+                                "dynamic.+fps".toRegex(RegexOption.IGNORE_CASE).containsMatchIn(key) &&
+                                "\\d+:\\d+".toRegex().containsMatchIn(value)
+                            ) {
+                                if (profileRule == JoyoseProfileRule.RM_APP_DFPS) {
+                                    iterator.remove()
+                                } else {
+                                    o.putOpt(key, o.optString(key).split(";").map { rule ->
+                                        val fps = "^(\\d+#)?\\d+:(\\d+)".toRegex().find(rule)?.groupValues?.getOrNull(2)
+                                        return@map if (fps == null) rule else rule.replace(":(\\d+)".toRegex(), ":$fps")
+                                    }.joinToString(";"))
+                                }
                             }
                         }
                     }

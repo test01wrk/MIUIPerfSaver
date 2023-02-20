@@ -40,6 +40,7 @@ class JoyoseFragment : Fragment() {
                     Pair(JoyoseProfileRule.BLOCK_ALL, getString(R.string.joyose_profile_process_rule_block_all)),
                     Pair(JoyoseProfileRule.RM_APP_LIST, getString(R.string.joyose_profile_process_rule_rm_app_list)),
                     Pair(JoyoseProfileRule.RM_APP_DFPS, getString(R.string.joyose_profile_process_rule_rm_app_dfps)),
+                    Pair(JoyoseProfileRule.MOD_APP_DFPS, getString(R.string.joyose_profile_process_rule_mod_app_dfps)),
                     Pair(JoyoseProfileRule.KEEP_ALL, getString(R.string.joyose_profile_process_rule_keep_all))
                 )
             }

@@ -48,6 +48,7 @@
     <string name="joyose_profile_process_rule_block_all">Block All Rules</string>
     <string name="joyose_profile_process_rule_rm_app_list">Remove App Rules</string>
     <string name="joyose_profile_process_rule_rm_app_dfps">Remove Dynamic FPS</string>
+    <string name="joyose_profile_process_rule_mod_app_dfps">Modify Dynamic FPS</string>
     <string name="joyose_profile_process_rule_keep_all">Keep All Rules</string>
     <string name="joyose_open_local_settings">Start Joyose Local Settings</string>
     <string name="joyose_su_cmd_desc">(root permission required) $ %1$s</string>
