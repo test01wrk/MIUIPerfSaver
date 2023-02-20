@@ -53,6 +53,8 @@
     <string name="joyose_open_local_settings">Start Joyose Local Settings</string>
     <string name="joyose_su_cmd_desc">(root permission required) $ %1$s</string>
     <string name="joyose_profile_process_rule_desc">Block or modify cloud strategy. Clear Joyose app data and restart Joyose service to take effect</string>
+    <string name="joyose_profile_content">Joyose Profile Content</string>
+    <string name="joyose_profile_content_empty">Empty</string>
     <string name="open">Start</string>
     <string name="show_launcher_icon">Show launcher icon</string>
     <string name="dc_compat_item_title"><![CDATA[DC backlight & Refresh Rate Compat]]></string>

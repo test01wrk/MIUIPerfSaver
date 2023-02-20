@@ -22,11 +22,13 @@ object JoyoseHook {
     fun initHook(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName != JOYOSE_PKG) return
 
+        val joyoseContextHolder = arrayOf<Context?>(null)
         val joyoseProfileRuleHolder = arrayOf(JoyoseProfileRule.BLOCK_ALL)
         XposedHelpers.findAndHookMethod(Application::class.java, "onCreate",
             object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
+                override fun beforeHookedMethod(param: MethodHookParam) {
                     val context = param.thisObject as Context
+                    joyoseContextHolder[0] = context.applicationContext
                     val updateJoyoseRule = fun() {
                         ConfigProvider.getJoyoseConfig(context)?.let {
                             val old = joyoseProfileRuleHolder[0]
@@ -52,11 +54,18 @@ object JoyoseHook {
             "parse",
             jsonReaderClass,
             object : XC_MethodHook() {
+                fun updateJoyoseProfile(profile: JSONObject?) {
+                    joyoseContextHolder[0]?.let { context ->
+                        ConfigProvider.updateJoyoseProfile(context, profile)
+                    }
+                }
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val config = parseCloudConfig(param.result) ?: return
-                    val hackProfile = replaceCloudConfig(param.result, hackProfile(config, joyoseProfileRuleHolder[0]))
+                    val hackProfile = hackProfile(config, joyoseProfileRuleHolder[0])
+                    updateJoyoseProfile(hackProfile)
+                    val replacedProfile = replaceCloudConfig(param.result, hackProfile)
                     val reader = XposedHelpers.findConstructorExact(jsonReaderClass, Reader::class.java)
-                        .newInstance(StringReader(hackProfile.toString()))
+                        .newInstance(StringReader(replacedProfile.toString()))
                     param.result = XposedBridge.invokeOriginalMethod(param.method, param.thisObject, arrayOf(reader))
                 }
             })
@@ -180,8 +189,7 @@ object JoyoseHook {
                                     iterator.remove()
                                 } else {
                                     o.putOpt(key, o.optString(key).split(";").map { rule ->
-                                        val fps = "^(\\d+#)?\\d+:(\\d+)".toRegex().find(rule)?.groupValues?.getOrNull(2)
-                                        return@map if (fps == null) rule else rule.replace(":(\\d+)".toRegex(), ":$fps")
+                                        return@map rule.replace(":(\\d+)".toRegex(RegexOption.MULTILINE), ":999")
                                     }.joinToString(";"))
                                 }
                             }

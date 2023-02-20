@@ -48,6 +48,8 @@
     <string name="joyose_open_local_settings">打开 Joyose 本地配置页面</string>
     <string name="joyose_su_cmd_desc">"（需 root 权限）$ %1$s"</string>
     <string name="joyose_profile_process_rule">云控规则处理方式</string>
+    <string name="joyose_profile_content">Joyose 规则内容</string>
+    <string name="joyose_profile_content_empty">无内容</string>
     <string name="open">打开</string>
     <string name="show_launcher_icon">显示桌面图标</string>
     <string name="joyose_profile_process_rule_keep_all">保留全部规则</string>

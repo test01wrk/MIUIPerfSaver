@@ -27,9 +27,14 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         var selections: List<Pair<JoyoseProfileRule, String>>? = null
     }
 
-    class SuCmdButtonItem : SettingItem() {
+    open class SuCmdButtonItem : SettingItem() {
         var button: String = ""
         var cmd: String = ""
+        open fun onCmdResult(code: Int, stdout: String, stderr: String) {}
+    }
+
+    open class LargeTextItem : SettingItem() {
+        open fun getText() = ""
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -41,8 +46,6 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
         fun bind(item: SettingItem) {
             titleView.text = item.title
             descView.text = item.desc
-            buttonView.visibility = View.GONE
-            spinnerView.visibility = View.GONE
             if (item is ProfileRuleItem) {
                 spinnerView.visibility = View.VISIBLE
                 val items = item.selections ?: emptyList()
@@ -78,9 +81,16 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
                         buttonView.post {
                             val msg = if (exitCode == 0) stdout else stderr
                             Toast.makeText(buttonView.context, "[${exitCode}] $msg", Toast.LENGTH_SHORT).show()
+                            item.onCmdResult(exitCode, stdout, stderr)
                         }
                     }.start()
                 }
+            } else if (item is LargeTextItem) {
+                descView.setBackgroundColor(descView.resources.getColor(R.color.bg_large_text))
+                descView.text = item.getText()
+                val padding = descView.resources.getDimensionPixelSize(
+                    R.dimen.large_text_item_padding) / (if (descView.length() > 0) 4 else 1)
+                descView.setPaddingRelative(padding, padding, padding, padding)
             }
         }
     }
@@ -92,6 +102,10 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(settings[position])
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        return settings[position]::class.java.hashCode()
     }
 
     override fun getItemCount(): Int {

@@ -16,6 +16,7 @@ object Constants {
     const val PREF_KEY_SHOW_SYSTEM = "preference_show_system"
     const val PREF_KEY_SAVED_APP_LIST = "preference_saved_app_list"
     const val PREF_KEY_JOYOSE_PROFILE_RULE = "preference_joyose_profile_rule"
+    const val PREF_KEY_JOYOSE_PROFILE_CONTENT = "preference_joyose_profile_content"
     const val PREF_KEY_DC_FPS_LIMIT = "preference_dc_fps_limit"
     const val PREF_KEY_DC_BRIGHTNESS = "preference_dc_brightness"
 

@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
+import com.rdstory.miuiperfsaver.Configuration
 import com.rdstory.miuiperfsaver.Constants.CLEAR_JOYOSE_CMD
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_ACTIVITY
 import com.rdstory.miuiperfsaver.Constants.JOYOSE_PKG
@@ -18,6 +19,7 @@ import com.rdstory.miuiperfsaver.Constants.STOP_JOYOSE_SERVICE_CMD
 import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
 import com.rdstory.miuiperfsaver.adapters.JoyoseSettingAdapter
+import org.json.JSONObject
 
 class JoyoseFragment : Fragment() {
     override fun onCreateView(
@@ -28,7 +30,18 @@ class JoyoseFragment : Fragment() {
         val root: View = inflater.inflate(R.layout.fragment_apps, container, false)
         val packages: RecyclerView = root.findViewById(R.id.packages)
         packages.adapter = JoyoseSettingAdapter(getSettingItems())
+        Configuration.setJoyoseProfileCallback {
+            root.post {
+                val adapter = packages.adapter ?: return@post
+                adapter.notifyItemChanged(adapter.itemCount - 1)
+            }
+        }
         return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        Configuration.setJoyoseProfileCallback(null)
     }
 
     private fun getSettingItems(): List<JoyoseSettingAdapter.SettingItem> {
@@ -45,7 +58,11 @@ class JoyoseFragment : Fragment() {
                 )
             }
         )
-        list.add(JoyoseSettingAdapter.SuCmdButtonItem().apply {
+        list.add(object : JoyoseSettingAdapter.SuCmdButtonItem() {
+            override fun onCmdResult(code: Int, stdout: String, stderr: String) {
+                Configuration.resetJoyoseProfile()
+            }
+        }.apply {
             title = getString(R.string.joyose_clear_application_data)
             desc = getString(R.string.joyose_su_cmd_desc, CLEAR_JOYOSE_CMD)
             button = getString(R.string.clear_data)
@@ -77,6 +94,15 @@ class JoyoseFragment : Fragment() {
                 cmd = START_JOYOSE_CMD
             })
         }
+        list.add(object : JoyoseSettingAdapter.LargeTextItem() {
+            override fun getText(): String {
+                return Configuration.getJoyoseProfile().takeIf { it.isNotEmpty() }
+                    ?.let { JSONObject(it).toString(2) }
+                    ?: getString(R.string.joyose_profile_content_empty)
+            }
+        }.apply {
+            title = getString(R.string.joyose_profile_content)
+        })
         return list
     }
 }
