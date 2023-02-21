@@ -45,7 +45,7 @@ object Configuration {
             null
         }?.forEach { pkg ->
             val pkgAndFps = pkg.split(SEPARATOR)
-            val fps = pkgAndFps.getOrNull(1)?.toInt() ?: supportedFPS.getOrNull(0)
+            val fps = pkgAndFps.getOrNull(1)?.toIntOrNull() ?: supportedFPS.getOrNull(0)
             fps?.let { savedApps[pkgAndFps[0]] = it }
         }
         ConfigProvider.notifyChange(context)
@@ -115,8 +115,8 @@ object Configuration {
         val profileJson = profile?.takeIf { it.isNotEmpty() }?.let { JSONObject(it) } ?: return
         val oldProfileJson = getJoyoseProfile().takeIf { it.isNotEmpty() }?.let { JSONObject(it) }
         oldProfileJson?.keys()?.forEach { key ->
-            val newVer = profileJson.optJSONObject(key)?.optString("version")?.toLong() ?: 0L
-            val oldVer = oldProfileJson.optJSONObject(key)?.optString("version")?.toLong() ?: 0L
+            val newVer = profileJson.optJSONObject(key)?.optString("version")?.toLongOrNull() ?: 0L
+            val oldVer = oldProfileJson.optJSONObject(key)?.optString("version")?.toLongOrNull() ?: 0L
             if (!profileJson.has(key) || oldVer > newVer) {
                 profileJson.putOpt(key, oldProfileJson.optJSONObject(key))
             }
