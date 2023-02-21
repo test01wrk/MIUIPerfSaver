@@ -7,9 +7,11 @@ import com.rdstory.miuiperfsaver.ConfigProvider.Companion.DC_COMPAT_CONFIG_URI
 import com.rdstory.miuiperfsaver.ConfigProvider.Companion.JOYOSE_CONFIG_URI
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_BRIGHTNESS
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_DC_FPS_LIMIT
+import com.rdstory.miuiperfsaver.Constants.PREF_KEY_JOYOSE_PROFILE_CONTENT
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_JOYOSE_PROFILE_RULE
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
+import org.json.JSONObject
 
 object Configuration {
     private lateinit var sharedPreferences: SharedPreferences
@@ -24,6 +26,7 @@ object Configuration {
         private set
     var dcBrightness = 0
         private set
+    private var joyoseProfileCallback: (() -> Unit)? = null
 
     fun init() {
         val context = MainApplication.application
@@ -108,4 +111,31 @@ object Configuration {
         }
     }
 
+    fun updateJoyoseProfile(profile: String?) {
+        val profileJson = profile?.takeIf { it.isNotEmpty() }?.let { JSONObject(it) } ?: return
+        val oldProfileJson = getJoyoseProfile().takeIf { it.isNotEmpty() }?.let { JSONObject(it) }
+        oldProfileJson?.keys()?.forEach { key ->
+            val newVer = profileJson.optJSONObject(key)?.optString("version")?.toLong() ?: 0L
+            val oldVer = oldProfileJson.optJSONObject(key)?.optString("version")?.toLong() ?: 0L
+            if (!profileJson.has(key) || oldVer > newVer) {
+                profileJson.putOpt(key, oldProfileJson.optJSONObject(key))
+            }
+        }
+        sharedPreferences.edit()
+            .putString(PREF_KEY_JOYOSE_PROFILE_CONTENT, profileJson.toString()).apply()
+        joyoseProfileCallback?.invoke()
+    }
+
+    fun resetJoyoseProfile() {
+        sharedPreferences.edit().putString(PREF_KEY_JOYOSE_PROFILE_CONTENT, "").apply()
+        joyoseProfileCallback?.invoke()
+    }
+
+    fun getJoyoseProfile(): String {
+        return sharedPreferences.getString(PREF_KEY_JOYOSE_PROFILE_CONTENT, null) ?: ""
+    }
+
+    fun setJoyoseProfileCallback(callback: (() -> Unit)?) {
+        joyoseProfileCallback = callback
+    }
 }

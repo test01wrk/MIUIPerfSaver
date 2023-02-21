@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import com.rdstory.miuiperfsaver.BuildConfig.CONFIG_PROVIDER_AUTHORITY
+import org.json.JSONObject
 
 
 class ConfigProvider : ContentProvider() {
@@ -18,8 +19,10 @@ class ConfigProvider : ContentProvider() {
         private const val URI_CODE_APP_LIST = 1
         private const val URI_CODE_JOYOSE_CONFIG = 2
         private const val URI_CODE_DC_COMPAT_CONFIG = 3
+        private const val URI_CODE_JOYOSE_PROFILE = 4
 
         private const val COLUMN_PROFILE_RULE = "profile_rule"
+        private const val COLUMN_PROFILE_CONTENT = "profile_content"
         private const val COLUMN_PKG = "package_name"
         private const val COLUMN_PKG_FPS = "package_fps"
         const val COLUMN_DC_FPS_LIMIT = "dc_fps_limit"
@@ -27,11 +30,13 @@ class ConfigProvider : ContentProvider() {
         private val ALL_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}")
         val APP_LIST_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/app_list")
         val JOYOSE_CONFIG_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/joyose_config")
+        val JOYOSE_PROFILE_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/joyose_profile")
         val DC_COMPAT_CONFIG_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}/dc_compat_config")
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(CONFIG_PROVIDER_AUTHORITY, "app_list", URI_CODE_APP_LIST)
             addURI(CONFIG_PROVIDER_AUTHORITY, "joyose_config", URI_CODE_JOYOSE_CONFIG)
             addURI(CONFIG_PROVIDER_AUTHORITY, "dc_compat_config", URI_CODE_DC_COMPAT_CONFIG)
+            addURI(CONFIG_PROVIDER_AUTHORITY, "joyose_profile", URI_CODE_JOYOSE_PROFILE)
         }
 
         fun notifyChange(context: Context, uri: Uri = ALL_URI) {
@@ -96,6 +101,13 @@ class ConfigProvider : ContentProvider() {
             }
             return null
         }
+
+        fun updateJoyoseProfile(context: Context, profile: JSONObject?) {
+            val values =  ContentValues(1).apply {
+                put(COLUMN_PROFILE_CONTENT, profile?.toString())
+            }
+            context.contentResolver.update(JOYOSE_PROFILE_URI, values, null, null)
+        }
     }
 
     override fun onCreate(): Boolean {
@@ -150,6 +162,11 @@ class ConfigProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<out String>?
     ): Int {
+        when (uriMatcher.match(uri)) {
+            URI_CODE_JOYOSE_PROFILE -> {
+                Configuration.updateJoyoseProfile(values?.getAsString(COLUMN_PROFILE_CONTENT))
+            }
+        }
         return 0
     }
 }
