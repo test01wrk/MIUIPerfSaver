@@ -62,13 +62,26 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Button"
         android:textSize="12sp"
         android:textAllCaps="false"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@+id/barrier_right_action"
+        tools:text="Button"
+        tools:visibility="gone" />
+
+    <androidx.appcompat.widget.AppCompatCheckBox
+        android:id="@+id/checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/barrier_right_action"
+        tools:text="Ignore DC Limit"
         tools:visibility="visible" />
 
     <androidx.constraintlayout.widget.Barrier
@@ -76,13 +89,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:barrierDirection="left"
-        app:constraint_referenced_ids="fps_spinner,button" />
+        app:constraint_referenced_ids="fps_spinner,button,checkbox" />
 
     <androidx.constraintlayout.widget.Barrier
         android:id="@+id/barrier_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:barrierDirection="top"
-        app:constraint_referenced_ids="button" />
+        app:constraint_referenced_ids="button,checkbox" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

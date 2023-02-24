@@ -64,5 +64,6 @@
     <string name="joyose_stop_service" >停止 Joyose 服务</string>
     <string name="stop_service" >停止服务</string>
     <string name="visit_coolapk">作者酷安</string>
+    <string name="ignore_dc_limit">无视 DC 限制</string>
 
 </resources>

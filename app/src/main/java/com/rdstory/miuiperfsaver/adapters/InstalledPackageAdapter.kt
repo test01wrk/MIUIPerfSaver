@@ -16,6 +16,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatButton
+import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
@@ -114,7 +115,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view: View = LayoutInflater.from(parent.context).inflate(R.layout.item_app, parent, false)
-        return ViewHolder(view)
+        return ViewHolder(view, isDCIncompatible)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -227,7 +228,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         }
     }
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
+    class ViewHolder(itemView: View, private val isDCIncompatible: Boolean) : RecyclerView.ViewHolder(itemView),
         View.OnClickListener, AdapterView.OnItemSelectedListener {
 
         companion object {
@@ -243,6 +244,7 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
         private val packageName: AppCompatTextView = itemView.findViewById(R.id.package_name)
         private val fpsSpinner: AppCompatSpinner = itemView.findViewById(R.id.fps_spinner)
         private val button: AppCompatButton = itemView.findViewById(R.id.button)
+        private val checkBox: AppCompatCheckBox = itemView.findViewById(R.id.checkbox)
         private var pkg: PackageInfoCache? = null
         private var fakePkg: FakePackage? = null
 
@@ -276,6 +278,8 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
             packageName.text = desc
             fpsSpinner.adapter = fpsSpinner.adapter ?: createSpinnerAdapter()
             fpsSpinner.onItemSelectedListener = this
+            checkBox.visibility = View.GONE
+            checkBox.setOnCheckedChangeListener(null)
             if (fakePkg?.type == FakePackageType.DC_COMPAT) {
                 val spinnerIndex = Configuration.supportedFPS.indexOf(Configuration.dcFpsLimit)
                 fpsSpinner.setSelection(spinnerIndex + 1)
@@ -286,11 +290,20 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
                     button.text = context.getString(R.string.dc_brightness_value, Configuration.dcBrightness)
                 }
             } else {
-                val spinnerIndex = (fakePkg?.type?.pkg ?: pkg?.packageName)?.let {
+                val packageName = fakePkg?.type?.pkg ?: pkg?.packageName
+                val spinnerIndex = packageName?.let {
                     Configuration.fpsIndex(it)
                 } ?: -1
                 fpsSpinner.setSelection(spinnerIndex + 1)
                 button.visibility = View.GONE
+                if (pkg != null && packageName != null && isDCIncompatible) {
+                    checkBox.visibility = if (spinnerIndex > 0) View.VISIBLE else View.GONE
+                    checkBox.text = context.getString(R.string.ignore_dc_limit)
+                    checkBox.isChecked = Configuration.isPkgIgnoreDCLimit(packageName)
+                    checkBox.setOnCheckedChangeListener { _, isChecked ->
+                        Configuration.setPkgIgnoreDCLimit(packageName, isChecked)
+                    }
+                }
             }
         }
 
@@ -323,6 +336,10 @@ class InstalledPackageAdapter(context: Context, prefs: SharedPreferences) :
             } else {
                 val packageName = fakePkg?.type?.pkg ?: pkg?.packageName ?: return
                 Configuration.setPkgFps(packageName, fps)
+                if (pkg != null && isDCIncompatible) {
+                    checkBox.visibility = if (position > 0) View.VISIBLE else View.GONE
+                    checkBox.isChecked = Configuration.isPkgIgnoreDCLimit(packageName)
+                }
             }
         }
 

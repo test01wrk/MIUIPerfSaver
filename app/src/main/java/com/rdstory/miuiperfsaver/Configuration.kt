@@ -14,8 +14,12 @@ import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SAVED_APP_LIST
 import org.json.JSONObject
 
 object Configuration {
+    class AppConfig(
+        var fps: Int = -1,
+        var ignoreDCLimit: Boolean = false,
+    )
     private lateinit var sharedPreferences: SharedPreferences
-    private val savedApps = mutableMapOf<String, Int>()
+    private val savedApps = mutableMapOf<String, AppConfig>()
     private const val SEPARATOR = '|'
     private val supportedFPSBackend = arrayListOf<Int>()
     val supportedFPS: List<Int>
@@ -45,14 +49,16 @@ object Configuration {
             null
         }?.forEach { pkg ->
             val pkgAndFps = pkg.split(SEPARATOR)
-            val fps = pkgAndFps.getOrNull(1)?.toIntOrNull() ?: supportedFPS.getOrNull(0)
-            fps?.let { savedApps[pkgAndFps[0]] = it }
+            val packageName = pkgAndFps.getOrNull(0) ?: return@forEach
+            val fps = pkgAndFps.getOrNull(1)?.toIntOrNull() ?: supportedFPS.getOrNull(0) ?: return@forEach
+            val ignoreDCLimit = pkgAndFps.getOrNull(2)?.toBooleanStrictOrNull() ?: false
+            savedApps[packageName] = AppConfig(fps, ignoreDCLimit)
         }
         ConfigProvider.notifyChange(context)
     }
 
     private fun savePkgFpsMap() {
-        val saveSet = savedApps.map { "${it.key}$SEPARATOR${it.value}" }.toSet()
+        val saveSet = savedApps.map { "${it.key}$SEPARATOR${it.value.fps}$SEPARATOR${it.value.ignoreDCLimit}" }.toSet()
         sharedPreferences.edit().putStringSet(PREF_KEY_SAVED_APP_LIST, saveSet).apply()
     }
 
@@ -61,29 +67,54 @@ object Configuration {
     }
 
     fun getPkgFps(packageName: String): Int? {
-        return savedApps[packageName]
+        return savedApps[packageName]?.fps?.takeIf { it >= 0 }
+    }
+
+    fun isPkgIgnoreDCLimit(packageName: String): Boolean {
+        return savedApps[packageName]?.ignoreDCLimit == true
     }
 
     fun setPkgFps(packageName: String, fps: Int?) {
-        var changed = false
-        val oldFps = savedApps[packageName]
-        if (fps != null && (oldFps == null || oldFps != fps)) {
-            savedApps[packageName] = fps
-            changed = true
-        } else if (fps == null && oldFps != null) {
-            savedApps.remove(packageName)
-            changed = true
+        val oldConfig = savedApps[packageName]
+        val oldFps = oldConfig?.fps ?: -1
+        val oldIgnore = oldConfig?.ignoreDCLimit ?: false
+        val newFps = fps ?: -1
+        if (oldFps != newFps) {
+            setPkgConfig(packageName, (oldConfig ?: AppConfig()).apply {
+                this.fps = newFps
+                this.ignoreDCLimit = oldIgnore.takeIf { newFps >= 0 } ?: false
+            })
         }
-        if (changed) {
-            savePkgFpsMap()
-            ConfigProvider.notifyChange(MainApplication.application, APP_LIST_URI)
-        }
-    }
-    fun isPkgHasFps(packageName: String): Boolean {
-        return savedApps.contains(packageName)
     }
 
-    fun getPkgFpsMap(): Map<String, Int> {
+    fun setPkgIgnoreDCLimit(packageName: String, ignoreDCLimit: Boolean?) {
+        val oldConfig = savedApps[packageName]
+        val oldFps = oldConfig?.fps ?: -1
+        val oldIgnore = oldConfig?.ignoreDCLimit ?: false
+        val newIgnore = ignoreDCLimit ?: false
+        if (oldIgnore != newIgnore) {
+            setPkgConfig(packageName, (oldConfig ?: AppConfig()).apply {
+                this.fps = oldFps
+                this.ignoreDCLimit = newIgnore
+            })
+        }
+    }
+
+    private fun setPkgConfig(packageName: String, newConfig: AppConfig) {
+        if (newConfig.fps < 0 && !newConfig.ignoreDCLimit) {
+            savedApps.remove(packageName)
+        } else {
+            savedApps[packageName] = newConfig
+        }
+        savePkgFpsMap()
+        ConfigProvider.notifyChange(MainApplication.application, APP_LIST_URI)
+    }
+
+    fun isPkgHasFps(packageName: String): Boolean {
+        return getPkgFps(packageName) != null
+    }
+
+    fun getPkgConfigMap(): Map<String, AppConfig> {
         return savedApps
     }
 

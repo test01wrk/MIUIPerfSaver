@@ -24,7 +24,8 @@ class ConfigProvider : ContentProvider() {
         private const val COLUMN_PROFILE_RULE = "profile_rule"
         private const val COLUMN_PROFILE_CONTENT = "profile_content"
         private const val COLUMN_PKG = "package_name"
-        private const val COLUMN_PKG_FPS = "package_fps"
+        const val COLUMN_PKG_FPS = "package_fps"
+        const val COLUMN_PKG_IGNORE_DC_LIMIT = "package_ignore_dc_limit"
         const val COLUMN_DC_FPS_LIMIT = "dc_fps_limit"
         const val COLUMN_DC_BRIGHTNESS = "dc_brightness"
         private val ALL_URI: Uri = Uri.parse("content://${CONFIG_PROVIDER_AUTHORITY}")
@@ -54,18 +55,22 @@ class ConfigProvider : ContentProvider() {
             )
         }
 
-        fun getSavedAppConfig(context: Context): Map<String, Int>? {
+        fun getSavedAppConfig(context: Context): Map<String, JSONObject>? {
             val cursor = context.contentResolver.query(APP_LIST_URI, null, null, null)
             cursor?.use {
                 if (!cursor.moveToFirst()) return@use
-                val appFpsMap = mutableMapOf<String, Int>()
+                val appConfigMap = mutableMapOf<String, JSONObject>()
                 do {
                     val pkgIndex = cursor.getColumnIndex(COLUMN_PKG).takeIf { it >= 0 } ?: continue
-                    val pkgFpsIndex =
-                        cursor.getColumnIndex(COLUMN_PKG_FPS).takeIf { it >= 0 } ?: continue
-                    appFpsMap[cursor.getString(pkgIndex)] = cursor.getInt(pkgFpsIndex)
+                    val pkgFpsIndex = cursor.getColumnIndex(COLUMN_PKG_FPS).takeIf { it >= 0 } ?: continue
+                    val pkgIgnoreDCLimitIndex = cursor.getColumnIndex(COLUMN_PKG_IGNORE_DC_LIMIT).takeIf { it >= 0 }
+                    appConfigMap[cursor.getString(pkgIndex)] = JSONObject().apply {
+                        put(COLUMN_PKG_FPS, cursor.getInt(pkgFpsIndex))
+                        val ignoreDCLimit = pkgIgnoreDCLimitIndex?.let { cursor.getString(it) } ?: false
+                        put(COLUMN_PKG_IGNORE_DC_LIMIT, ignoreDCLimit)
+                    }
                 } while (cursor.moveToNext())
-                return appFpsMap
+                return appConfigMap
             }
             return null
         }
@@ -123,9 +128,9 @@ class ConfigProvider : ContentProvider() {
     ): Cursor? {
         when (uriMatcher.match(uri)) {
             URI_CODE_APP_LIST -> {
-                val apps = Configuration.getPkgFpsMap()
-                return MatrixCursor(arrayOf(COLUMN_PKG, COLUMN_PKG_FPS)).apply {
-                    apps.forEach { newRow().add(it.key).add(it.value) }
+                val apps = Configuration.getPkgConfigMap()
+                return MatrixCursor(arrayOf(COLUMN_PKG, COLUMN_PKG_FPS, COLUMN_PKG_IGNORE_DC_LIMIT)).apply {
+                    apps.forEach { newRow().add(it.key).add(it.value.fps).add(it.value.ignoreDCLimit) }
                 }
             }
             URI_CODE_JOYOSE_CONFIG -> {
