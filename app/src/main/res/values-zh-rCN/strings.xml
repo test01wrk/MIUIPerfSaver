@@ -33,7 +33,7 @@
 
     <string name="app_version">版本: %s</string>
     <string name="xposed_version">Xposed 版本: %d</string>
-    <string name="xposed_not_found">Xposed framework is inactive.</string>
+    <string name="xposed_not_found">Xposed 框架未激活</string>
     <string name="visit_github">GitHub</string>
     <string name="fps_value_default">默认</string>
     <string name="global_default_fps">默认刷新率</string>

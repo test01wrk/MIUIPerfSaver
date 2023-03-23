@@ -168,33 +168,16 @@ object JoyoseHook {
                 }
             }
         }
-        val boosterConfig = profile.optJSONObject("booster_config")
+        val gameBooster = profile.optJSONObject("booster_config")
             ?.optJSONObject("params")
             ?.optJSONObject("game_booster")
-            ?.optJSONObject("booster_config")
+        gameBooster?.optJSONObject("dynamic_fps_global")?.let { o -> handleDynamicFps(o, profileRule) }
+        val boosterConfig = gameBooster?.optJSONObject("booster_config")
         val overrideConfig = boosterConfig?.optJSONArray("ovrride_config")
         if (overrideConfig != null){
             if (profileRule == JoyoseProfileRule.RM_APP_DFPS || profileRule == JoyoseProfileRule.MOD_APP_DFPS) {
                 for (i in 0 until overrideConfig.length()) {
-                    overrideConfig.optJSONObject(i)?.let { o ->
-                        val iterator = o.keys()
-                        while (iterator.hasNext()) {
-                            val key = iterator.next()
-                            val value = o.optString(key)
-                            if (
-                                "dynamic.+fps".toRegex(RegexOption.IGNORE_CASE).containsMatchIn(key) &&
-                                "\\d+:\\d+".toRegex().containsMatchIn(value)
-                            ) {
-                                if (profileRule == JoyoseProfileRule.RM_APP_DFPS) {
-                                    iterator.remove()
-                                } else {
-                                    o.putOpt(key, o.optString(key).split(";").map { rule ->
-                                        return@map rule.replace(":(\\d+)".toRegex(RegexOption.MULTILINE), ":999")
-                                    }.joinToString(";"))
-                                }
-                            }
-                        }
-                    }
+                    overrideConfig.optJSONObject(i)?.let { o -> handleDynamicFps(o, profileRule) }
                 }
             } else if (profileRule == JoyoseProfileRule.RM_APP_LIST) {
                 boosterConfig.put("ovrride_config", JSONArray())
@@ -202,6 +185,26 @@ object JoyoseHook {
             XposedBridge.log("[$LOG_TAG] cloud profile rule processed: ${overrideConfig.length()}")
         }
         return profile
+    }
+
+    private fun handleDynamicFps(o: JSONObject, profileRule: JoyoseProfileRule) {
+        val iterator = o.keys()
+        while (iterator.hasNext()) {
+            val key = iterator.next()
+            val value = o.optString(key)
+            if (
+                "dynamic.+fps".toRegex(RegexOption.IGNORE_CASE).containsMatchIn(key) &&
+                "\\d+:\\d+".toRegex().containsMatchIn(value)
+            ) {
+                if (profileRule == JoyoseProfileRule.MOD_APP_DFPS) {
+                    o.putOpt(key, o.optString(key).split(";").map { rule ->
+                        return@map rule.replace(":(\\d+)".toRegex(RegexOption.MULTILINE), ":999")
+                    }.joinToString(";"))
+                } else {
+                    iterator.remove()
+                }
+            }
+        }
     }
 }
 
