@@ -68,4 +68,7 @@
     <string name="joyose_stop_service" >Stop Joyose Service</string>
     <string name="stop_service" >Stop Service</string>
     <string name="visit_coolapk">CoolAPK Profile</string>
+    <string name="confirm_copy_text_to_clipboard">Copy content to clipboard?</string>
+    <string name="confirm">OK</string>
+    <string name="copy_to_clipboard_success">Success</string>
 </resources>

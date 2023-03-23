@@ -1,5 +1,8 @@
 package com.rdstory.miuiperfsaver.adapters
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
@@ -35,6 +39,7 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
 
     open class LargeTextItem : SettingItem() {
         open fun getText() = ""
+        var allowCopy = false
     }
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -91,6 +96,23 @@ class JoyoseSettingAdapter(private val settings: List<SettingItem>) : RecyclerVi
                 val padding = descView.resources.getDimensionPixelSize(
                     R.dimen.large_text_item_padding) / (if (descView.length() > 0) 4 else 1)
                 descView.setPaddingRelative(padding, padding, padding, padding)
+                if (item.allowCopy) {
+                    val context = descView.context
+                    descView.setOnLongClickListener {
+                        AlertDialog.Builder(context)
+                            .setTitle(R.string.confirm_copy_text_to_clipboard)
+                            .setPositiveButton(R.string.confirm) { dialog, _ ->
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cm.setPrimaryClip(ClipData.newPlainText("", descView.text))
+                                Toast.makeText(context, R.string.copy_to_clipboard_success, Toast.LENGTH_SHORT).show()
+                                dialog.dismiss()
+                            }
+                            .show()
+                        return@setOnLongClickListener true
+                    }
+                } else {
+                    descView.setOnLongClickListener(null)
+                }
             }
         }
     }

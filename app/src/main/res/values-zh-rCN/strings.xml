@@ -64,5 +64,8 @@
     <string name="joyose_stop_service" >停止 Joyose 服务</string>
     <string name="stop_service" >停止服务</string>
     <string name="visit_coolapk">作者酷安</string>
+    <string name="confirm_copy_text_to_clipboard">复制内容到剪贴板？</string>
+    <string name="confirm">确定</string>
+    <string name="copy_to_clipboard_success">已复制到剪贴板</string>
 
 </resources>

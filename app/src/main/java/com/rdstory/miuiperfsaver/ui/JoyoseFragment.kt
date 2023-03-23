@@ -102,6 +102,7 @@ class JoyoseFragment : Fragment() {
             }
         }.apply {
             title = getString(R.string.joyose_profile_content)
+            allowCopy = true
         })
         return list
     }
