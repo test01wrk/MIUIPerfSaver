@@ -3,6 +3,7 @@ package com.rdstory.miuiperfsaver
 import android.content.Context
 import android.hardware.display.DisplayManager
 import android.provider.Settings
+import androidx.appcompat.app.AlertDialog
 
 object Utils {
     fun getSupportFps(context: Context): List<Int> {
@@ -27,6 +28,24 @@ object Utils {
                 .invoke(null, "dc_backlight_fps_incompatible", false) as Boolean
         } catch (e: Throwable) {
             false
+        }
+    }
+
+    fun alertAppNotWorking(context: Context, pkg: String) {
+        val appInfo = try {
+            context.packageManager.getApplicationInfo(pkg, 0)
+        } catch (ignore: Throwable) {
+            null
+        }
+        if (appInfo?.enabled != true) {
+            val appName = appInfo?.let { context.packageManager.getApplicationLabel(it) } ?: pkg
+            AlertDialog.Builder(context)
+                .setTitle(context.getString(R.string.app_package_not_working, appName))
+                .setMessage(R.string.app_package_not_working_desc)
+                .setPositiveButton(R.string.confirm) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
         }
     }
 

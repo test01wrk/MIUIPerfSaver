@@ -71,4 +71,6 @@
     <string name="confirm_copy_text_to_clipboard">Copy content to clipboard?</string>
     <string name="confirm">OK</string>
     <string name="copy_to_clipboard_success">Success</string>
+    <string name="app_package_not_working">[%s] May Not Working</string>
+    <string name="app_package_not_working_desc">Make sure the application exist in system and is enabled</string>
 </resources>
