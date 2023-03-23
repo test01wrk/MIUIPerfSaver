@@ -35,6 +35,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title"
         app:layout_constraintVertical_chainStyle="packed"
+        tools:background="@color/bg_large_text"
         tools:text="tw.idv.palatis.appdebuggable" />
 
     <androidx.constraintlayout.widget.Barrier

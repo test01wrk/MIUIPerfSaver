@@ -33,7 +33,7 @@
 
     <string name="app_version">版本: %s</string>
     <string name="xposed_version">Xposed 版本: %d</string>
-    <string name="xposed_not_found">Xposed framework is inactive.</string>
+    <string name="xposed_not_found">Xposed 框架未激活</string>
     <string name="visit_github">GitHub</string>
     <string name="fps_value_default">默认</string>
     <string name="global_default_fps">默认刷新率</string>
@@ -64,5 +64,10 @@
     <string name="joyose_stop_service" >停止 Joyose 服务</string>
     <string name="stop_service" >停止服务</string>
     <string name="visit_coolapk">作者酷安</string>
+    <string name="confirm_copy_text_to_clipboard">复制内容到剪贴板？</string>
+    <string name="confirm">确定</string>
+    <string name="copy_to_clipboard_success">已复制到剪贴板</string>
+    <string name="app_package_not_working">[%s]可能无法使用</string>
+    <string name="app_package_not_working_desc">请确认系统中存在该应用，且没有被冻结</string>
 
 </resources>

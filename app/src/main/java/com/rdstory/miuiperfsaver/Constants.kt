@@ -22,6 +22,7 @@ object Constants {
 
     const val FAKE_PKG_DEFAULT_FPS = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DEFAULT_FPS"
     const val FAKE_PKG_DC_COMPAT = "${BuildConfig.APPLICATION_ID}_FAKE_PKG_DC_COMPAT"
+    const val POWER_KEEPER_PKG = "com.miui.powerkeeper"
     const val JOYOSE_PKG = "com.xiaomi.joyose"
     const val JOYOSE_ACTIVITY = ".cloud.LocalCtrlActivity"
     const val JOYOSE_SERVICE = ".smartop.SmartOpService"

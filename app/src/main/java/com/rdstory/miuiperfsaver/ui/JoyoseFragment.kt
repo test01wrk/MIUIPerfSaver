@@ -18,6 +18,7 @@ import com.rdstory.miuiperfsaver.Constants.START_JOYOSE_SERVICE_CMD
 import com.rdstory.miuiperfsaver.Constants.STOP_JOYOSE_SERVICE_CMD
 import com.rdstory.miuiperfsaver.JoyoseProfileRule
 import com.rdstory.miuiperfsaver.R
+import com.rdstory.miuiperfsaver.Utils
 import com.rdstory.miuiperfsaver.adapters.JoyoseSettingAdapter
 import org.json.JSONObject
 
@@ -37,6 +38,11 @@ class JoyoseFragment : Fragment() {
             }
         }
         return root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Utils.alertAppNotWorking(requireView().context, JOYOSE_PKG)
     }
 
     override fun onDestroyView() {
@@ -102,6 +108,7 @@ class JoyoseFragment : Fragment() {
             }
         }.apply {
             title = getString(R.string.joyose_profile_content)
+            allowCopy = true
         })
         return list
     }

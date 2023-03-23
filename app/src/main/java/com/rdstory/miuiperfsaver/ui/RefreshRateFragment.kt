@@ -8,6 +8,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.RecyclerView
+import com.rdstory.miuiperfsaver.Constants
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_PERF_SAVED_FIRST
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SHOW_SYSTEM
 import com.rdstory.miuiperfsaver.Constants.PREF_KEY_SORT_ORDER
@@ -17,6 +18,7 @@ import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_PACKAGE_NAME
 import com.rdstory.miuiperfsaver.Constants.SORT_ORDER_UPDATE_TIME
 import com.rdstory.miuiperfsaver.Constants.SETTINGS_SP_KEY
 import com.rdstory.miuiperfsaver.R
+import com.rdstory.miuiperfsaver.Utils
 import com.rdstory.miuiperfsaver.adapters.InstalledPackageAdapter
 import com.rdstory.miuiperfsaver.viewmodels.AppsViewModel
 
@@ -42,6 +44,11 @@ class RefreshRateFragment : Fragment() {
         )
         mAppsViewModel.updatePackageList(requireContext())
         return root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Utils.alertAppNotWorking(requireView().context, Constants.POWER_KEEPER_PKG)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
